@@ -2,6 +2,13 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.2] - 2026-04-19
+
+### Changed
+
+- Action-triggered refreshes after `add_product` and `remove_product` now update only the affected product entities plus the shopping list instead of doing a full refresh
+- Burst handling for action-triggered refreshes still coalesces rapid sequences to avoid refresh storms
+
 ## [1.0.1] - 2026-04-19
 
 ### Added
@@ -55,5 +62,6 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.2]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.2
 [1.0.1]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.1
 [1.0.0]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.0

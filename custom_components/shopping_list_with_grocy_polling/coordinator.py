@@ -74,7 +74,7 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         self._parsed_data = {}
         self._image_refresh_unsub = None
         self._action_refresh_task = None
-        self._action_refresh_pending = False
+        self._pending_action_product_ids: set[int] = set()
         self._next_action_refresh_time = 0.0
 
         homeassistant_products = self.data.get("homeassistant_products", {})
@@ -102,9 +102,9 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         await self.retrieve_data(True)
         return self.data
 
-    async def request_update_after_action(self) -> None:
-        """Coalesce bursts of post-action refresh requests."""
-        self._action_refresh_pending = True
+    async def request_update_after_action(self, product_ids: set[int]) -> None:
+        """Coalesce bursts of post-action lightweight refresh requests."""
+        self._pending_action_product_ids.update(int(pid) for pid in product_ids)
         if self._action_refresh_task and not self._action_refresh_task.done():
             return
         self._action_refresh_task = self.hass.async_create_task(
@@ -115,17 +115,22 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         """Run a leading refresh plus at most one trailing refresh per burst."""
         try:
             while True:
-                self._action_refresh_pending = False
+                product_ids = set(self._pending_action_product_ids)
+                self._pending_action_product_ids.clear()
+                if not product_ids:
+                    break
                 wait_time = self._next_action_refresh_time - self.hass.loop.time()
                 if wait_time > 0:
                     await asyncio.sleep(wait_time)
 
-                await self.request_update()
+                await self.api.refresh_after_action(product_ids)
+                self.data = self.api.final_data
+                self.async_update_listeners()
                 self._next_action_refresh_time = (
                     self.hass.loop.time() + _ACTION_REFRESH_INTERVAL_SECONDS
                 )
 
-                if not self._action_refresh_pending:
+                if not self._pending_action_product_ids:
                     break
         finally:
             self._action_refresh_task = None

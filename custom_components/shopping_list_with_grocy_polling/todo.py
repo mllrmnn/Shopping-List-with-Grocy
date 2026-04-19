@@ -134,6 +134,13 @@ class ShoppingListWithGrocyTodoListEntity(
         """Delete todo items from Grocy and update local state."""
         LOGGER.debug("Deleting %d items from list %s", len(uids), self._list_id)
 
+        affected_product_ids = {
+            int(item["product_id"])
+            for item in self.coordinator.data.get("shopping_list", [])
+            if str(item.get("id")) in {str(uid) for uid in uids}
+            and item.get("product_id") is not None
+        }
+
         self._data["products"] = [
             product
             for product in self._data.get("products", [])
@@ -147,8 +154,8 @@ class ShoppingListWithGrocyTodoListEntity(
         try:
             await asyncio.gather(*tasks)
             LOGGER.debug("Successfully deleted %d items", len(uids))
-            if self.coordinator.should_refresh_after_remove():
-                await self.coordinator.request_update_after_action()
+            if self.coordinator.should_refresh_after_remove() and affected_product_ids:
+                await self.coordinator.request_update_after_action(affected_product_ids)
         except Exception as e:
             LOGGER.error("Failed to delete items: %s", e)
 
@@ -232,7 +239,9 @@ class ShoppingListWithGrocyTodoListEntity(
                         },
                     )
                 if self.coordinator.should_refresh_after_add():
-                    await self.coordinator.request_update_after_action()
+                    await self.coordinator.request_update_after_action(
+                        {int(result["product_id"])}
+                    )
 
             elif result["reason"] == "multiple_matches":
                 matches = result["matches"]

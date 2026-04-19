@@ -672,6 +672,90 @@ class ShoppingListWithGrocyApi:
                 payload,
             )
 
+            return attributes.get("product_id")
+
+    def _build_updated_product_payload(self, product_id: int) -> dict | None:
+        """Rebuild shopping-list-specific product attributes from cached base data."""
+        product_key = str(product_id)
+        cached_product = (self.final_data.get("homeassistant_products") or {}).get(
+            product_key
+        )
+        if not cached_product:
+            return None
+
+        product_meta = next(
+            (
+                product
+                for product in self.final_data.get("products", [])
+                if int(product.get("id")) == int(product_id)
+            ),
+            None,
+        )
+        if not product_meta:
+            return None
+
+        qty_factor = (
+            float(product_meta.get("qu_factor_purchase_to_stock", 1.0))
+            if product_meta.get("qu_id_purchase") != product_meta.get("qu_id_stock")
+            else 1.0
+        )
+
+        base_attributes = {
+            key: value
+            for key, value in cached_product.get("attributes", {}).items()
+            if not key.startswith("list_")
+        }
+
+        shopping_entries = [
+            item
+            for item in self.final_data.get("shopping_list", [])
+            if str(item.get("product_id")) == product_key
+        ]
+
+        total_qty = 0
+        for item in shopping_entries:
+            shopping_list_id = int(item["shopping_list_id"])
+            in_shop_list = int(round(int(item.get("amount", 0)) / qty_factor))
+            total_qty += in_shop_list
+            base_attributes[f"list_{shopping_list_id}_qty"] = in_shop_list
+            base_attributes[f"list_{shopping_list_id}_note"] = item.get("note", "")
+            base_attributes[f"list_{shopping_list_id}_shop_list_id"] = int(item["id"])
+
+        base_attributes["qty_in_shopping_lists"] = total_qty
+        base_attributes["list_count"] = len(shopping_entries)
+
+        return {
+            "name": cached_product.get("name", product_meta.get("name", "Unknown Product")),
+            "product_id": int(product_id),
+            "qty_in_shopping_lists": total_qty,
+            "attributes": base_attributes,
+        }
+
+    async def refresh_after_action(self, affected_product_ids: set[int]) -> None:
+        """Refresh only shopping list data plus the affected product entities."""
+        if not self.final_data:
+            await self.retrieve_data(force=True)
+            return
+
+        self.final_data["shopping_list"] = await self.fetch_list("shopping_list")
+        self.final_data["shopping_lists_data"] = self.build_item_list(self.final_data)
+        self.final_data[ATTR_SHOPPING_LIST] = self._build_shopping_list_products_summary(
+            self.final_data
+        )
+
+        homeassistant_products = self.final_data.setdefault("homeassistant_products", {})
+
+        for product_id in affected_product_ids:
+            payload = self._build_updated_product_payload(int(product_id))
+            if payload is None:
+                continue
+            homeassistant_products[str(product_id)] = payload
+            async_dispatcher_send(
+                self.hass,
+                f"{DOMAIN}_add_or_update_sensor",
+                payload,
+            )
+
     async def update_note(self, product_id, shopping_list_id, note):
         """Update a note on a product in the shopping list."""
         entity = self.get_entity_in_hass(product_id)

@@ -428,16 +428,24 @@ def async_setup_services(hass) -> None:
             note = data.get(SERVICE_ATTR_NOTE, "")
             shopping_list_id = data.get(SERVICE_ATTR_SHOPPING_LIST_ID, 1)
             quantity = data.get("quantity", 1)
-            await coordinator.add_product(product_id, shopping_list_id, note, quantity)
+            affected_product_id = await coordinator.add_product(
+                product_id, shopping_list_id, note, quantity
+            )
             if coordinator.should_refresh_after_add():
-                await coordinator.request_update_after_action()
+                await coordinator.request_update_after_action(
+                    {affected_product_id} if affected_product_id is not None else set()
+                )
 
         if service == SERVICE_REMOVE:
             product_id = data.get(SERVICE_ATTR_PRODUCT_ID, "")
             shopping_list_id = data.get(SERVICE_ATTR_SHOPPING_LIST_ID, 1)
-            await coordinator.remove_product(product_id, shopping_list_id)
+            affected_product_id = await coordinator.remove_product(
+                product_id, shopping_list_id
+            )
             if coordinator.should_refresh_after_remove():
-                await coordinator.request_update_after_action()
+                await coordinator.request_update_after_action(
+                    {affected_product_id} if affected_product_id is not None else set()
+                )
 
         if service == SERVICE_NOTE:
             product_id = data.get(SERVICE_ATTR_PRODUCT_ID, "")

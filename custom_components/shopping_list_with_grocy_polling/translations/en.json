@@ -18,8 +18,8 @@
           "enable_tasks": "Enable task sensors",
           "enable_meal_plan": "Enable meal plan sensor",
           "enable_batteries": "Enable battery sensors",
-          "refresh_after_add_product": "Run full refresh after add_product",
-          "refresh_after_remove_product": "Run full refresh after remove_product"
+          "refresh_after_add_product": "Refresh product and shopping list after add_product",
+          "refresh_after_remove_product": "Refresh product and shopping list after remove_product"
         }
       }
     },
@@ -54,8 +54,8 @@
           "enable_tasks": "Enable task sensors",
           "enable_meal_plan": "Enable meal plan sensor",
           "enable_batteries": "Enable battery sensors",
-          "refresh_after_add_product": "Run full refresh after add_product",
-          "refresh_after_remove_product": "Run full refresh after remove_product"
+          "refresh_after_add_product": "Refresh product and shopping list after add_product",
+          "refresh_after_remove_product": "Refresh product and shopping list after remove_product"
         }
       },
       "advanced": {
