@@ -56,25 +56,6 @@ from .schema import SELECTION_CRITERIA_SCHEMA
 _LOGGER = logging.getLogger(__name__)
 
 
-async def _create_restart_repair_issue(hass, notification_key: str) -> None:
-    """Create a restart required repair issue."""
-
-    context_map = {
-        "restart_required_setup": "setup",
-        "restart_required_settings": "settings",
-        "restart_required_analysis": "analysis",
-    }
-
-    context = context_map.get(notification_key, "setup")
-
-    try:
-        from .services import async_create_restart_repair_issue
-
-        await async_create_restart_repair_issue(hass, context)
-    except Exception as e:
-        _LOGGER.error("Failed to create restart repair issue: %s", e)
-
-
 class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # type: ignore
     """Handle option configuration via Integrations page."""
 
@@ -334,14 +315,6 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 )
                 first_time_setup = not (old_api_url and old_api_key)
 
-                if settings_changed or first_time_setup:
-                    notification_key = (
-                        "restart_required_setup"
-                        if first_time_setup
-                        else "restart_required_settings"
-                    )
-                    await _create_restart_repair_issue(self.hass, notification_key)
-
                 return self.async_create_entry(title="", data=updated_data)
 
         # Create base schema
@@ -501,14 +474,6 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 old_analysis_settings = self.options.get(CONF_ANALYSIS_SETTINGS, {})
                 old_selection_criteria = self.options.get(CONF_SELECTION_CRITERIA, {})
 
-                if (
-                    old_analysis_settings != analysis_settings
-                    or old_selection_criteria != selection_criteria
-                ):
-                    await _create_restart_repair_issue(
-                        self.hass, "restart_required_analysis"
-                    )
-
                 return self.async_create_entry(title="", data=updated_data)
 
         return self.async_show_form(
@@ -607,8 +572,6 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors["base"] = "invalid_image_refresh_time"
             if not self._errors:
                 self._data.update(user_input)
-
-                await _create_restart_repair_issue(self.hass, "restart_required_setup")
 
                 return self.async_create_entry(
                     title="Shopping List with Grocy Polling", data=self._data

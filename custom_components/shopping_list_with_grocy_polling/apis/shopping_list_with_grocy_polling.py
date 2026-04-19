@@ -196,6 +196,7 @@ class ShoppingListWithGrocyApi:
         accept: str,
         payload: dict = None,
         *,
+        allow_404: bool = False,
         req_timeout: int | None = None,
         log_level: int = logging.ERROR,
         **kwargs,
@@ -258,6 +259,9 @@ class ShoppingListWithGrocyApi:
                             **kwargs,
                         )
 
+            if allow_404 and response.status == 404:
+                return response
+
             if response.status >= 400:
                 error_text = await response.text()
                 LOGGER.error("Grocy API error: %s - %s", response.status, error_text)
@@ -302,6 +306,7 @@ class ShoppingListWithGrocyApi:
             "get",
             url,
             "application/octet-stream",
+            allow_404=True,
             req_timeout=self.compute_timeout(),
             log_level=logging.DEBUG,
         )
@@ -509,6 +514,13 @@ class ShoppingListWithGrocyApi:
                 if response is None:
                     LOGGER.debug(
                         "No response while fetching image for product %s", product_id
+                    )
+                    return
+                if response.status == 404:
+                    LOGGER.debug(
+                        "Product image %s for product %s does not exist anymore",
+                        picture_file_name,
+                        product_id,
                     )
                     return
 

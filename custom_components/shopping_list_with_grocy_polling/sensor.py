@@ -45,12 +45,10 @@ LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=60)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GrocyAggregateSensorDescription(SensorEntityDescription):
     """Description for Grocy-style aggregate sensors."""
 
-    list_key: str
-    count_key: str
     attributes_fn: Callable[[list[Any]], Mapping[str, Any] | None]
 
 
@@ -59,8 +57,6 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         key=ATTR_CHORES,
         name="Chores",
         icon="mdi:broom",
-        list_key=ATTR_CHORES,
-        count_key="count",
         attributes_fn=lambda data: {
             ATTR_CHORES: data,
             "count": len(data),
@@ -70,8 +66,6 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         key=ATTR_MEAL_PLAN,
         name="Meal plan",
         icon="mdi:silverware-variant",
-        list_key="meals",
-        count_key="count",
         attributes_fn=lambda data: {
             "meals": data,
             "count": len(data),
@@ -81,8 +75,6 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         key=ATTR_SHOPPING_LIST,
         name="Shopping list",
         icon="mdi:cart-outline",
-        list_key="products",
-        count_key="count",
         attributes_fn=lambda data: {
             "products": data,
             "count": len(data),
@@ -92,8 +84,6 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         key=ATTR_STOCK,
         name="Stock",
         icon="mdi:fridge-outline",
-        list_key="products",
-        count_key="count",
         attributes_fn=lambda data: {
             "products": data,
             "count": len(data),
@@ -103,8 +93,6 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         key=ATTR_TASKS,
         name="Tasks",
         icon="mdi:checkbox-marked-circle-outline",
-        list_key=ATTR_TASKS,
-        count_key="count",
         attributes_fn=lambda data: {
             ATTR_TASKS: data,
             "count": len(data),
@@ -114,8 +102,6 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         key=ATTR_BATTERIES,
         name="Batteries",
         icon="mdi:battery",
-        list_key=ATTR_BATTERIES,
-        count_key="count",
         attributes_fn=lambda data: {
             ATTR_BATTERIES: data,
             "count": len(data),

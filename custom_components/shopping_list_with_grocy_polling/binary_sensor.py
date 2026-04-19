@@ -33,7 +33,7 @@ from .const import (
 LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GrocyAggregateBinarySensorDescription(BinarySensorEntityDescription):
     """Description for Grocy-style binary sensors."""
 
