@@ -2,6 +2,20 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.1] - 2026-04-19
+
+### Added
+
+- Optional full-refresh toggles after `add_product` and `remove_product`
+- Coalesced post-action refresh behavior to reduce refresh storms during bursty scripts
+
+### Fixed
+
+- Product sensor setup now completes reliably during initial setup
+- Sensor lifecycle across reloads is more stable
+- Product/list entity names are normalized without the `Grocy Products` prefix
+- Added a `Force Refresh` button on the `Grocy` device
+
 ## [1.0.0] - 2026-04-19
 
 Initial release of the `shopping_list_with_grocy_polling` fork.
@@ -41,4 +55,5 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.1]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.1
 [1.0.0]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.0
