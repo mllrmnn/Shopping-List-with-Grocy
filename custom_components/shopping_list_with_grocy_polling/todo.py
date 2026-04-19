@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 import time
 from datetime import timedelta
@@ -24,6 +25,13 @@ from .frontend_translations import async_load_frontend_translations, get_todo_st
 
 LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=15)
+
+
+async def _maybe_async_add_entities(async_add_entities, entities) -> None:
+    """Support entity adders that are callbacks or awaitables."""
+    result = async_add_entities(entities)
+    if inspect.isawaitable(result):
+        await result
 
 
 class ShoppingListWithGrocyTodoListEntity(
@@ -385,7 +393,7 @@ async def async_setup_entry(
     if "shopping_lists" not in hass.data[DOMAIN]:
         hass.data[DOMAIN]["shopping_lists"] = []
 
-    def _create_entities_from_data():
+    async def _create_entities_from_data():
         shopping_lists_data = coordinator.data.get("shopping_lists_data", [])
         fallback_lists = coordinator.data.get("shopping_lists", [])
 
@@ -397,7 +405,7 @@ async def async_setup_entry(
         ]
 
         if entities:
-            async_add_entities(entities)
+            await _maybe_async_add_entities(async_add_entities, entities)
             LOGGER.debug("Added %d shopping lists to To-do platform", len(entities))
         else:
             try:
@@ -415,7 +423,7 @@ async def async_setup_entry(
             )
 
     if coordinator.data is not None:
-        _create_entities_from_data()
+        await _create_entities_from_data()
         return
 
     retry_interval = 5
@@ -427,7 +435,7 @@ async def async_setup_entry(
     async def _attempt_setup(_now):
         if coordinator.data is not None:
             try:
-                _create_entities_from_data()
+                await _create_entities_from_data()
             finally:
                 handle = retry_handles.pop(config_entry.entry_id, None)
                 if handle:

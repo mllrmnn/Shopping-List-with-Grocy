@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import inspect
 import logging
 import re
 from collections.abc import Callable, Mapping
@@ -43,6 +44,22 @@ from .const import (
 
 LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=60)
+
+
+async def _maybe_async_add_entities(async_add_entities, entities) -> None:
+    """Support entity adders that are callbacks or awaitables."""
+    result = async_add_entities(entities)
+    if inspect.isawaitable(result):
+        await result
+
+
+def _aggregate_unrecorded_attributes(key: str) -> frozenset[str]:
+    """Return large attributes that should stay out of the recorder DB."""
+    if key in {ATTR_SHOPPING_LIST, ATTR_STOCK}:
+        return frozenset({"products"})
+    if key == ATTR_MEAL_PLAN:
+        return frozenset({"meals"})
+    return frozenset({key})
 
 
 @dataclass(kw_only=True)
@@ -166,6 +183,9 @@ class GrocyAggregateSensorEntity(GrocyDeviceEntity, SensorEntity):
         self._attr_unique_id = f"{config_entry.entry_id}_{description.key}"
         self._attr_has_entity_name = True
         self._attr_config_entry_id = config_entry.entry_id
+        self._unrecorded_attributes = _aggregate_unrecorded_attributes(
+            description.key
+        )
 
     @property
     def native_value(self) -> StateType:
@@ -375,12 +395,13 @@ class GrocyVoiceResponseHelperSensor(SensorEntity):
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the sensor platform."""
 
-    async_add_entities(
+    await _maybe_async_add_entities(
+        async_add_entities,
         [
             GrocyShoppingSuggestionsSensor(hass),
             GrocyMultipleChoicesSensor(hass),
             GrocyVoiceResponseHelperSensor(hass),
-        ]
+        ],
     )
 
     entity_registry = async_get(hass)
@@ -465,7 +486,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for sensor in sensors:
         coordinator.entities.append(sensor)
 
-    async_add_entities(initial_product_sensors + sensors)
+    await _maybe_async_add_entities(async_add_entities, initial_product_sensors + sensors)
 
     pattern = re.compile(r"list_\d+_.*")
 
@@ -547,8 +568,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     entity_id, new_state, attributes=updated_attributes
                 )
 
-                await asyncio.sleep(1)
-
                 if product_id in coordinator._parsed_data:
                     coordinator._parsed_data[product_id] = copy.deepcopy(product)
                     coordinator._parsed_data[product_id]["qty_in_shopping_lists"] = (
@@ -559,7 +578,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     )
         else:
             sensor = DynamicProductSensor(coordinator, product)
-            async_add_entities([sensor])
+            await _maybe_async_add_entities(async_add_entities, [sensor])
 
     async def async_remove_grocy_sensor(product_id):
         entity_id = f"sensor.{DOMAIN}_product_v{ENTITY_VERSION}_{product_id}"
@@ -569,8 +588,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             entity_registry.async_remove(entity_id)
 
         hass.states.async_remove(entity_id)
-
-        await asyncio.sleep(0.1)
 
     config_entry.async_on_unload(
         async_dispatcher_connect(
@@ -606,6 +623,7 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
         self._attr_has_entity_name = False
         self.entity_id = entity_id
         self._attr_unique_id = unique_id
+        self._unrecorded_attributes = frozenset({"entity_picture", "product_image"})
 
         if coordinator.entry and coordinator.entry.entry_id:
             self._attr_config_entry_id = coordinator.entry.entry_id

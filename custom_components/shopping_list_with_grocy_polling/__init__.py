@@ -10,7 +10,11 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from .apis.shopping_list_with_grocy_polling import ShoppingListWithGrocyApi
-from .const import DOMAIN
+from .const import (
+    CONF_REFRESH_AFTER_ADD_PRODUCT,
+    CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+    DOMAIN,
+)
 from .coordinator import ShoppingListWithGrocyCoordinator
 from .frontend import async_setup_frontend, async_unload_frontend
 from .schema import configuration_schema
@@ -355,5 +359,33 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 
 async def async_update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the config entry after options/data changes."""
+    """Reload only for heavy config changes; apply light flags live."""
+    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if coordinator is None:
+        await hass.config_entries.async_reload(entry.entry_id)
+        return
+
+    old_config = getattr(coordinator, "_config", {})
+    new_config = {**entry.data, **(entry.options or {})}
+
+    live_update_keys = {
+        CONF_REFRESH_AFTER_ADD_PRODUCT,
+        CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+    }
+
+    changed_keys = {
+        key
+        for key in set(old_config) | set(new_config)
+        if old_config.get(key) != new_config.get(key)
+    }
+
+    if changed_keys and changed_keys.issubset(live_update_keys):
+        coordinator.apply_runtime_config(entry)
+        LOGGER.debug(
+            "Applied config changes without reload for %s: %s",
+            entry.entry_id,
+            ", ".join(sorted(changed_keys)),
+        )
+        return
+
     await hass.config_entries.async_reload(entry.entry_id)

@@ -79,5 +79,7 @@ async def async_setup_frontend(hass: HomeAssistant) -> None:
 async def async_unload_frontend(hass: HomeAssistant) -> None:
     """Unload the frontend panel."""
     if PANEL_NAME in hass.data.get(DOMAIN, {}).get("panels", []):
-        hass.components.frontend.async_remove_panel(PANEL_NAME)
+        frontend_component = getattr(getattr(hass, "components", None), "frontend", None)
+        if frontend_component and hasattr(frontend_component, "async_remove_panel"):
+            frontend_component.async_remove_panel(PANEL_NAME)
         hass.data[DOMAIN]["panels"].remove(PANEL_NAME)

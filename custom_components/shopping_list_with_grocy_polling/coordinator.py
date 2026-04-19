@@ -5,7 +5,11 @@ import logging
 import time
 from datetime import timedelta
 
-from homeassistant.helpers.event import async_track_time_change, async_track_time_interval
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_time_change,
+    async_track_time_interval,
+)
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -73,6 +77,7 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         self.data = hass.data.setdefault(DOMAIN, {}).setdefault("products", {})
         self._parsed_data = {}
         self._image_refresh_unsub = None
+        self._initial_image_refresh_unsub = None
         self._action_refresh_task = None
         self._pending_action_product_ids: set[int] = set()
         self._next_action_refresh_time = 0.0
@@ -243,6 +248,9 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         if self._image_refresh_unsub is not None:
             self._image_refresh_unsub()
             self._image_refresh_unsub = None
+        if self._initial_image_refresh_unsub is not None:
+            self._initial_image_refresh_unsub()
+            self._initial_image_refresh_unsub = None
 
         if self.api.image_size <= 0:
             return
@@ -274,17 +282,37 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
                 timedelta(hours=refresh_hours),
             )
 
+        # Delay the initial image refresh slightly so integration startup is not
+        # held open by potentially long-running image downloads.
+        self._initial_image_refresh_unsub = async_call_later(
+            self.hass,
+            15,
+            self._handle_initial_image_refresh,
+        )
+
+    async def _handle_initial_image_refresh(self, _now) -> None:
+        """Kick off the first image refresh after startup without blocking setup."""
+        self._initial_image_refresh_unsub = None
         self.hass.async_create_task(self.async_refresh_images(initial=True))
 
     async def _handle_scheduled_image_refresh(self, _now) -> None:
         """Run image refreshes on the configured schedule."""
-        await self.async_refresh_images()
+        self.hass.async_create_task(self.async_refresh_images())
 
     async def async_shutdown(self) -> None:
         """Cancel scheduled callbacks when the entry unloads."""
         if self._image_refresh_unsub is not None:
             self._image_refresh_unsub()
             self._image_refresh_unsub = None
+        if self._initial_image_refresh_unsub is not None:
+            self._initial_image_refresh_unsub()
+            self._initial_image_refresh_unsub = None
         if self._action_refresh_task and not self._action_refresh_task.done():
             self._action_refresh_task.cancel()
             self._action_refresh_task = None
+
+    def apply_runtime_config(self, entry) -> None:
+        """Apply updated config entry data without a full reload when possible."""
+        self.entry = entry
+        self._config = {**entry.data, **(entry.options or {})}
+        self.api.config = self._config

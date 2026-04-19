@@ -2,6 +2,17 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.3] - 2026-04-19
+
+### Fixed
+
+- Restored Grocy-compatible `missing_products` unit metadata so Lovelace templates can safely read `default_quantity_unit_purchase.name` and `name_plural`
+- Removed slow per-product dispatcher sleeps that could stall startup while dynamic product sensors were being refreshed
+- Delayed the initial product image refresh so Home Assistant startup is no longer held open by image downloads
+- Stopped large image/list attributes from being written into Recorder for product and aggregate entities while keeping them available at runtime
+- Hardened refresh-status and frontend unload handling during reload/shutdown to avoid unload-time errors
+- Avoided un-awaited entity add callbacks in To-do setup paths
+
 ## [1.0.2] - 2026-04-19
 
 ### Changed
@@ -62,6 +73,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.3]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.3
 [1.0.2]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.2
 [1.0.1]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.1
 [1.0.0]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.0

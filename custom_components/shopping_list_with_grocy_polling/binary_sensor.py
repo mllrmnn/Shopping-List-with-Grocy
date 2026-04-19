@@ -143,6 +143,7 @@ class GrocyAggregateBinarySensorEntity(GrocyDeviceEntity, BinarySensorEntity):
         self._attr_unique_id = f"{config_entry.entry_id}_{description.key}"
         self._attr_has_entity_name = True
         self._attr_config_entry_id = config_entry.entry_id
+        self._unrecorded_attributes = frozenset({description.key})
 
     @property
     def is_on(self):

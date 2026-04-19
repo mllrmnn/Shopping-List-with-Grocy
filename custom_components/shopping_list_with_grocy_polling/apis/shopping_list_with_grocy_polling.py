@@ -1426,14 +1426,19 @@ class ShoppingListWithGrocyApi:
         return table[nearest]
 
     async def update_refreshing_status(self, refreshing):
-        entity = self.hass.data[DOMAIN]["entities"].get(
+        domain_data = self.hass.data.get(DOMAIN)
+        if not isinstance(domain_data, dict):
+            return False
+
+        entity = (domain_data.get("entities") or {}).get(
             "updating_shopping_list_with_grocy_polling"
         )
 
         if entity is None:
             return False
 
-        self.hass.async_create_task(entity.update_state(refreshing))
+        await entity.update_state(refreshing)
+        return True
 
     def _parse_datetime(self, value: str | None) -> datetime | None:
         """Parse Grocy datetime strings into timezone-aware datetimes when possible."""
@@ -1582,6 +1587,79 @@ class ShoppingListWithGrocyApi:
         ]
         return sorted(filtered, key=lambda item: (item.get("day") or "", item.get("id") or 0))
 
+    def _build_quantity_unit_lookup(self, data: dict) -> dict[int, dict]:
+        """Map quantity unit ids to a compact unit payload."""
+        units: dict[int, dict] = {}
+        for unit in data.get("quantity_units", []) or []:
+            unit_id = unit.get("id")
+            if unit_id is None:
+                continue
+
+            name = unit.get("name") or ""
+            name_plural = unit.get("name_plural") or name
+            units[int(unit_id)] = {
+                "id": int(unit_id),
+                "name": name,
+                "name_plural": name_plural,
+            }
+
+        return units
+
+    def _enrich_volatile_product_entries(
+        self, entries: list[dict], data: dict
+    ) -> list[dict]:
+        """Backfill product metadata expected by Grocy-compatible templates."""
+        if not entries:
+            return []
+
+        products_by_id = {
+            int(product["id"]): product
+            for product in data.get("products", []) or []
+            if product.get("id") is not None
+        }
+        quantity_units = self._build_quantity_unit_lookup(data)
+
+        enriched_entries: list[dict] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                enriched_entries.append(entry)
+                continue
+
+            enriched = dict(entry)
+            raw_product_id = (
+                entry.get("product_id")
+                if entry.get("product_id") is not None
+                else entry.get("id")
+            )
+
+            try:
+                product_id = int(raw_product_id)
+            except (TypeError, ValueError):
+                enriched_entries.append(enriched)
+                continue
+
+            product = products_by_id.get(product_id, {})
+            purchase_unit = quantity_units.get(
+                int(product.get("qu_id_purchase"))
+            ) if product.get("qu_id_purchase") is not None else None
+            stock_unit = quantity_units.get(
+                int(product.get("qu_id_stock"))
+            ) if product.get("qu_id_stock") is not None else None
+
+            if purchase_unit and "default_quantity_unit_purchase" not in enriched:
+                enriched["default_quantity_unit_purchase"] = purchase_unit
+            if stock_unit and "default_quantity_unit_stock" not in enriched:
+                enriched["default_quantity_unit_stock"] = stock_unit
+            if product and "product" not in enriched:
+                enriched["product"] = {
+                    "id": product_id,
+                    "name": product.get("name"),
+                }
+
+            enriched_entries.append(enriched)
+
+        return enriched_entries
+
     def _add_grocy_aggregate_entities(self, data: dict) -> None:
         """Populate Grocy-style aggregate entity datasets from fetched data."""
         volatile_stock = data.get("volatile_stock", {}) or {}
@@ -1606,10 +1684,22 @@ class ShoppingListWithGrocyApi:
         )
         data[ATTR_SHOPPING_LIST] = self._build_shopping_list_products_summary(data)
         data[ATTR_STOCK] = self._build_stock_products_summary(data)
-        data[ATTR_EXPIRING_PRODUCTS] = volatile_stock.get("due_products", []) or []
-        data[ATTR_EXPIRED_PRODUCTS] = volatile_stock.get("expired_products", []) or []
-        data[ATTR_OVERDUE_PRODUCTS] = volatile_stock.get("overdue_products", []) or []
-        data[ATTR_MISSING_PRODUCTS] = volatile_stock.get("missing_products", []) or []
+        data[ATTR_EXPIRING_PRODUCTS] = self._enrich_volatile_product_entries(
+            volatile_stock.get("due_products", []) or [],
+            data,
+        )
+        data[ATTR_EXPIRED_PRODUCTS] = self._enrich_volatile_product_entries(
+            volatile_stock.get("expired_products", []) or [],
+            data,
+        )
+        data[ATTR_OVERDUE_PRODUCTS] = self._enrich_volatile_product_entries(
+            volatile_stock.get("overdue_products", []) or [],
+            data,
+        )
+        data[ATTR_MISSING_PRODUCTS] = self._enrich_volatile_product_entries(
+            volatile_stock.get("missing_products", []) or [],
+            data,
+        )
         data[ATTR_OVERDUE_CHORES] = (
             self._build_overdue_chores(data[ATTR_CHORES]) if chores_enabled else []
         )
