@@ -7,7 +7,6 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
 
 from .analysis_const import (
     ANALYSIS_SCHEMA,
@@ -43,23 +42,8 @@ from .const import (
     IMAGE_REFRESH_MODE_INTERVAL,
 )
 from .schema import SELECTION_CRITERIA_SCHEMA
-from .services import async_create_restart_repair_issue
 
 _LOGGER = logging.getLogger(__name__)
-
-_IMAGE_REFRESH_MODE_SELECTOR = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=[
-            selector.SelectOptionDict(
-                value=IMAGE_REFRESH_MODE_INTERVAL, label="Interval"
-            ),
-            selector.SelectOptionDict(
-                value=IMAGE_REFRESH_MODE_DAILY_TIME, label="Daily time"
-            ),
-        ],
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
 
 
 async def _create_restart_repair_issue(hass, notification_key: str) -> None:
@@ -74,6 +58,8 @@ async def _create_restart_repair_issue(hass, notification_key: str) -> None:
     context = context_map.get(notification_key, "setup")
 
     try:
+        from .services import async_create_restart_repair_issue
+
         await async_create_restart_repair_issue(hass, context)
     except Exception as e:
         _LOGGER.error("Failed to create restart repair issue: %s", e)
@@ -310,7 +296,12 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 default=self.options.get(
                     CONF_IMAGE_REFRESH_MODE, DEFAULT_IMAGE_REFRESH_MODE
                 ),
-            ): _IMAGE_REFRESH_MODE_SELECTOR,
+            ): vol.In(
+                {
+                    IMAGE_REFRESH_MODE_INTERVAL: "Interval",
+                    IMAGE_REFRESH_MODE_DAILY_TIME: "Daily time",
+                }
+            ),
             vol.Optional(
                 CONF_IMAGE_REFRESH_INTERVAL_HOURS,
                 default=self.options.get(
@@ -539,7 +530,12 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_IMAGE_REFRESH_MODE,
                         default=DEFAULT_IMAGE_REFRESH_MODE,
-                    ): _IMAGE_REFRESH_MODE_SELECTOR,
+                    ): vol.In(
+                        {
+                            IMAGE_REFRESH_MODE_INTERVAL: "Interval",
+                            IMAGE_REFRESH_MODE_DAILY_TIME: "Daily time",
+                        }
+                    ),
                     vol.Optional(
                         CONF_IMAGE_REFRESH_INTERVAL_HOURS,
                         default=DEFAULT_IMAGE_REFRESH_INTERVAL_HOURS,
