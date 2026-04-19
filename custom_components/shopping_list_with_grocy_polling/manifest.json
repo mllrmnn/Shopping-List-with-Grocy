@@ -9,9 +9,9 @@
     "recorder",
     "http"
   ],
-  "documentation": "https://github.com/Anrolosia/Shopping-List-with-Grocy",
+  "documentation": "https://github.com/mllrmnn/Shopping-List-with-Grocy",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/Anrolosia/Shopping-List-with-Grocy/issues",
+  "issue_tracker": "https://github.com/mllrmnn/Shopping-List-with-Grocy/issues",
   "requirements": [],
-  "version": "0.26.2"
+  "version": "1.0.0"
 }
