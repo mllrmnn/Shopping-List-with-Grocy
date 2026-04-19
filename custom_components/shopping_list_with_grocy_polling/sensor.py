@@ -415,32 +415,30 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     # Check if product sensors are enabled (default to True for backward compatibility)
     enable_product_sensors = config_data.get(CONF_ENABLE_PRODUCT_SENSORS, True)
 
-    existing_entities = []
+    initial_product_sensors = []
     if enable_product_sensors:
-        for state in hass.states.async_all():
-            if state.entity_id.startswith(
-                f"sensor.shopping_list_with_grocy_polling_product_v{ENTITY_VERSION}_"
-            ):
-                product_id = state.entity_id.split("_")[-1]
-
-                # Try to get the product from coordinator data first
-                product_data = None
-                if hasattr(coordinator, "_parsed_data") and coordinator._parsed_data:
-                    product_data = coordinator._parsed_data.get(product_id)
-
-                if product_data:
-                    existing_sensor = DynamicProductSensor(coordinator, product_data)
-                else:
-                    existing_sensor = DynamicProductSensor(
-                        coordinator,
-                        {
-                            "product_id": product_id,
-                            # Fix Copilot #1: use `or` to handle empty string friendly_name
-                            "name": state.attributes.get("friendly_name") or state.name,
-                            "qty_in_shopping_lists": state.state,
-                        },
+        if hasattr(coordinator, "_parsed_data") and coordinator._parsed_data:
+            initial_product_sensors = [
+                DynamicProductSensor(coordinator, product)
+                for product in coordinator._parsed_data.values()
+            ]
+        else:
+            for state in hass.states.async_all():
+                if state.entity_id.startswith(
+                    f"sensor.shopping_list_with_grocy_polling_product_v{ENTITY_VERSION}_"
+                ):
+                    product_id = state.entity_id.split("_")[-1]
+                    initial_product_sensors.append(
+                        DynamicProductSensor(
+                            coordinator,
+                            {
+                                "product_id": product_id,
+                                "name": state.attributes.get("friendly_name")
+                                or state.name,
+                                "qty_in_shopping_lists": state.state,
+                            },
+                        )
                     )
-                existing_entities.append(existing_sensor)
     else:
         # If product sensors are disabled, remove any existing product sensors
         entity_registry = async_get(hass)
@@ -471,7 +469,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if not hasattr(sensor, "entity_id") or sensor.entity_id is None:
             sensor.entity_id = f"sensor.{sensor._attr_unique_id}"
 
-    async_add_entities(existing_entities + sensors)
+    async_add_entities(initial_product_sensors + sensors)
     for sensor in sensors:
         current_entity_id = sensor.entity_id
         expected_entity_id = f"sensor.{sensor._attr_unique_id}"
@@ -590,11 +588,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     )
     async_dispatcher_connect(hass, f"{DOMAIN}_remove_sensor", async_remove_grocy_sensor)
 
-    # Only process existing products if product sensors are enabled
+    # Only backfill dispatcher-created sensors when none were created initially.
     if (
         enable_product_sensors
         and hasattr(coordinator, "_parsed_data")
         and coordinator._parsed_data
+        and not initial_product_sensors
     ):
         for product in coordinator._parsed_data.values():
             await async_add_or_update_dynamic_sensor(product)
@@ -613,8 +612,8 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
         self.entity_id = entity_id
         self._attr_unique_id = unique_id
 
-        if coordinator.config_entry and coordinator.config_entry.entry_id:
-            self._attr_config_entry_id = coordinator.config_entry.entry_id
+        if coordinator.entry and coordinator.entry.entry_id:
+            self._attr_config_entry_id = coordinator.entry.entry_id
         else:
             self._attr_config_entry_id = None
 
