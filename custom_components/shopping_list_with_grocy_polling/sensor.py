@@ -2,19 +2,160 @@ import asyncio
 import copy
 import logging
 import re
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorEntityDescription,
+)
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_registry import async_get
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, ENTITY_VERSION, CONF_ENABLE_PRODUCT_SENSORS
+from .const import (
+    ATTR_BATTERIES,
+    ATTR_CHORES,
+    ATTR_MEAL_PLAN,
+    ATTR_SHOPPING_LIST,
+    ATTR_STOCK,
+    ATTR_TASKS,
+    CONF_ENABLE_PRODUCT_SENSORS,
+    DOMAIN,
+    ENTITY_VERSION,
+)
 
 LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=60)
+
+
+@dataclass
+class GrocyAggregateSensorDescription(SensorEntityDescription):
+    """Description for Grocy-style aggregate sensors."""
+
+    list_key: str
+    count_key: str
+    attributes_fn: Callable[[list[Any]], Mapping[str, Any] | None]
+
+
+AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
+    GrocyAggregateSensorDescription(
+        key=ATTR_CHORES,
+        name="Chores",
+        icon="mdi:broom",
+        list_key=ATTR_CHORES,
+        count_key="count",
+        attributes_fn=lambda data: {
+            ATTR_CHORES: data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_MEAL_PLAN,
+        name="Meal plan",
+        icon="mdi:silverware-variant",
+        list_key="meals",
+        count_key="count",
+        attributes_fn=lambda data: {
+            "meals": data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_SHOPPING_LIST,
+        name="Shopping list",
+        icon="mdi:cart-outline",
+        list_key="products",
+        count_key="count",
+        attributes_fn=lambda data: {
+            "products": data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_STOCK,
+        name="Stock",
+        icon="mdi:fridge-outline",
+        list_key="products",
+        count_key="count",
+        attributes_fn=lambda data: {
+            "products": data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_TASKS,
+        name="Tasks",
+        icon="mdi:checkbox-marked-circle-outline",
+        list_key=ATTR_TASKS,
+        count_key="count",
+        attributes_fn=lambda data: {
+            ATTR_TASKS: data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_BATTERIES,
+        name="Batteries",
+        icon="mdi:battery",
+        list_key=ATTR_BATTERIES,
+        count_key="count",
+        attributes_fn=lambda data: {
+            ATTR_BATTERIES: data,
+            "count": len(data),
+        },
+    ),
+)
+
+
+class GrocyDeviceEntity(CoordinatorEntity):
+    """Coordinator entity that exposes a shared Grocy device."""
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.entry.entry_id)},
+            name="Grocy",
+            manufacturer="Grocy",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
+
+class GrocyAggregateSensorEntity(GrocyDeviceEntity, SensorEntity):
+    """Grocy-style aggregate sensor built from the shared polling data."""
+
+    entity_description: GrocyAggregateSensorDescription
+
+    def __init__(
+        self,
+        coordinator,
+        description: GrocyAggregateSensorDescription,
+        config_entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_name = description.name
+        self._attr_unique_id = f"{config_entry.entry_id}_{description.key}"
+        self._attr_has_entity_name = True
+        self._attr_config_entry_id = config_entry.entry_id
+
+    @property
+    def native_value(self) -> StateType:
+        entity_data = self.coordinator.data.get(self.entity_description.key, [])
+        return len(entity_data) if entity_data else 0
+
+    @property
+    def extra_state_attributes(self):
+        entity_data = self.coordinator.data.get(self.entity_description.key, [])
+        return self.entity_description.attributes_fn(entity_data or [])
 
 
 class GrocyMultipleChoicesSensor(SensorEntity):
@@ -292,6 +433,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 hass.states.async_remove(state.entity_id)
 
     sensors = [
+        *[
+            GrocyAggregateSensorEntity(coordinator, description, config_entry)
+            for description in AGGREGATE_SENSORS
+        ],
         GrocyShoppingListSensor(
             coordinator, "shopping_list", "Shopping List Items", config_data
         ),

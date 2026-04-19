@@ -47,6 +47,20 @@ DEFAULT_PREFER_GENERIC_PRODUCTS = False
 DEFAULT_AUTO_SELECT_FIRST = False
 DEFAULT_SUGGEST_CREATE_ONLY_NO_MATCH = False
 
+ATTR_BATTERIES = "batteries"
+ATTR_CHORES = "chores"
+ATTR_EXPIRED_PRODUCTS = "expired_products"
+ATTR_EXPIRING_PRODUCTS = "expiring_products"
+ATTR_MEAL_PLAN = "meal_plan"
+ATTR_MISSING_PRODUCTS = "missing_products"
+ATTR_OVERDUE_BATTERIES = "overdue_batteries"
+ATTR_OVERDUE_CHORES = "overdue_chores"
+ATTR_OVERDUE_PRODUCTS = "overdue_products"
+ATTR_OVERDUE_TASKS = "overdue_tasks"
+ATTR_SHOPPING_LIST = "shopping_list"
+ATTR_STOCK = "stock"
+ATTR_TASKS = "tasks"
+
 OTHER_FIELDS = {
     "qu_id_purchase",
     "qu_id_stock",

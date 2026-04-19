@@ -3,7 +3,7 @@ import base64
 import logging
 import re
 import unicodedata
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from urllib.parse import urlencode
 
@@ -14,6 +14,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from ..const import (
+    ATTR_BATTERIES,
+    ATTR_CHORES,
+    ATTR_EXPIRED_PRODUCTS,
+    ATTR_EXPIRING_PRODUCTS,
+    ATTR_MEAL_PLAN,
+    ATTR_MISSING_PRODUCTS,
+    ATTR_OVERDUE_BATTERIES,
+    ATTR_OVERDUE_CHORES,
+    ATTR_OVERDUE_PRODUCTS,
+    ATTR_OVERDUE_TASKS,
+    ATTR_SHOPPING_LIST,
+    ATTR_STOCK,
+    ATTR_TASKS,
     CONF_REQUEST_SPACING_MS,
     DEFAULT_REQUEST_SPACING_MS,
     DOMAIN,
@@ -305,6 +318,11 @@ class ShoppingListWithGrocyApi:
                 break
 
         return data
+
+    async def fetch_json_endpoint(self, path: str, accept: str = "application/json"):
+        """Fetch a non-paginated JSON endpoint."""
+        response = await self.request("get", f"api/{path}", accept)
+        return await response.json()
 
     async def remove_product(self, product):
         if product.endswith("))"):
@@ -1313,6 +1331,170 @@ class ShoppingListWithGrocyApi:
 
         self.hass.async_create_task(entity.update_state(refreshing))
 
+    def _parse_datetime(self, value: str | None) -> datetime | None:
+        """Parse Grocy datetime strings into timezone-aware datetimes when possible."""
+        if not value:
+            return None
+
+        raw = str(value).strip()
+        if not raw:
+            return None
+
+        normalized = raw.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError:
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+                try:
+                    parsed = datetime.strptime(raw, fmt)
+                    break
+                except ValueError:
+                    parsed = None
+            if parsed is None:
+                return None
+
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+
+    def _parse_date(self, value: str | None) -> date | None:
+        """Parse Grocy date strings."""
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(str(value).strip()[:10])
+        except ValueError:
+            return None
+
+    def _build_stock_products_summary(self, data: dict) -> list[dict]:
+        """Build stock products summary similar to the standalone Grocy integration."""
+        products_by_id = {str(product["id"]): product for product in data.get("products", [])}
+        stock_by_product: dict[str, list[dict]] = {}
+        for item in data.get("stock", []):
+            stock_by_product.setdefault(str(item.get("product_id")), []).append(item)
+
+        result: list[dict] = []
+        for product_id, stock_items in stock_by_product.items():
+            product = products_by_id.get(product_id)
+            if not product:
+                continue
+
+            total_amount = sum(float(item.get("amount", 0) or 0) for item in stock_items)
+            opened_amount = sum(
+                float(item.get("amount", 0) or 0) * int(item.get("open", 0) or 0)
+                for item in stock_items
+            )
+            result.append(
+                {
+                    "id": int(product_id),
+                    "product_id": int(product_id),
+                    "name": product.get("name"),
+                    "amount": round(total_amount, 2),
+                    "opened_amount": round(opened_amount, 2),
+                    "unopened_amount": round(max(0.0, total_amount - opened_amount), 2),
+                    "min_stock_amount": product.get("min_stock_amount"),
+                    "best_before_date": min(
+                        (
+                            item.get("best_before_date")
+                            for item in stock_items
+                            if item.get("best_before_date")
+                        ),
+                        default=None,
+                    ),
+                    "location_id": product.get("location_id"),
+                    "picture_file_name": product.get("picture_file_name"),
+                    "picture_url": (
+                        f"/api/grocy/productpictures/{self.encode_base64(product['picture_file_name'])}"
+                        if product.get("picture_file_name")
+                        else None
+                    ),
+                    "product": product,
+                    "stock_entries": stock_items,
+                }
+            )
+
+        return sorted(result, key=lambda item: (item.get("name") or "").lower())
+
+    def _build_shopping_list_products_summary(self, data: dict) -> list[dict]:
+        """Build shopping list details with product names and shopping list names."""
+        products_by_id = {str(product["id"]): product for product in data.get("products", [])}
+        shopping_lists_by_id = {
+            str(item["id"]): item for item in data.get("shopping_lists", [])
+        }
+
+        result: list[dict] = []
+        for item in data.get("shopping_list", []):
+            product = products_by_id.get(str(item.get("product_id")), {})
+            shopping_list = shopping_lists_by_id.get(str(item.get("shopping_list_id")), {})
+            result.append(
+                {
+                    **item,
+                    "product_name": product.get("name"),
+                    "shopping_list_name": shopping_list.get("name"),
+                    "product": product,
+                    "shopping_list": shopping_list,
+                    "picture_url": (
+                        f"/api/grocy/productpictures/{self.encode_base64(product['picture_file_name'])}"
+                        if product.get("picture_file_name")
+                        else None
+                    ),
+                }
+            )
+
+        return result
+
+    def _build_overdue_chores(self, chores: list[dict]) -> list[dict]:
+        now = datetime.now(timezone.utc)
+        return [
+            chore
+            for chore in chores
+            if (next_execution := self._parse_datetime(chore.get("next_estimated_execution_time")))
+            and next_execution < now
+        ]
+
+    def _build_overdue_tasks(self, tasks: list[dict]) -> list[dict]:
+        today = datetime.now(timezone.utc).date()
+        return [
+            task
+            for task in tasks
+            if (due_date := self._parse_date(task.get("due_date"))) and due_date < today
+        ]
+
+    def _build_overdue_batteries(self, batteries: list[dict]) -> list[dict]:
+        now = datetime.now(timezone.utc)
+        return [
+            battery
+            for battery in batteries
+            if (charge_time := self._parse_datetime(battery.get("next_estimated_charge_time")))
+            and charge_time < now
+        ]
+
+    def _build_meal_plan_summary(self, meal_plan: list[dict]) -> list[dict]:
+        yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
+        filtered = [
+            item
+            for item in meal_plan
+            if (meal_day := self._parse_date(item.get("day"))) and meal_day > yesterday
+        ]
+        return sorted(filtered, key=lambda item: (item.get("day") or "", item.get("id") or 0))
+
+    def _add_grocy_aggregate_entities(self, data: dict) -> None:
+        """Populate Grocy-style aggregate entity datasets from fetched data."""
+        volatile_stock = data.get("volatile_stock", {}) or {}
+        data[ATTR_CHORES] = data.get("chores", []) or []
+        data[ATTR_TASKS] = data.get("tasks", []) or []
+        data[ATTR_BATTERIES] = data.get("batteries", []) or []
+        data[ATTR_MEAL_PLAN] = self._build_meal_plan_summary(data.get("meal_plan", []) or [])
+        data[ATTR_SHOPPING_LIST] = self._build_shopping_list_products_summary(data)
+        data[ATTR_STOCK] = self._build_stock_products_summary(data)
+        data[ATTR_EXPIRING_PRODUCTS] = volatile_stock.get("due_products", []) or []
+        data[ATTR_EXPIRED_PRODUCTS] = volatile_stock.get("expired_products", []) or []
+        data[ATTR_OVERDUE_PRODUCTS] = volatile_stock.get("overdue_products", []) or []
+        data[ATTR_MISSING_PRODUCTS] = volatile_stock.get("missing_products", []) or []
+        data[ATTR_OVERDUE_CHORES] = self._build_overdue_chores(data[ATTR_CHORES])
+        data[ATTR_OVERDUE_TASKS] = self._build_overdue_tasks(data[ATTR_TASKS])
+        data[ATTR_OVERDUE_BATTERIES] = self._build_overdue_batteries(data[ATTR_BATTERIES])
+
     async def retrieve_data(self, force=False):
         """Retrieves data and updates if necessary."""
         try:
@@ -1329,6 +1511,10 @@ class ShoppingListWithGrocyApi:
                     "stock",
                     "product_groups",
                     "quantity_units",
+                    "chores",
+                    "tasks",
+                    "batteries",
+                    "meal_plan",
                 ]
 
                 t = self.compute_timeout()
@@ -1336,20 +1522,30 @@ class ShoppingListWithGrocyApi:
                 if self.disable_timeout:
                     results = await asyncio.gather(
                         *(self.fetch_list(path) for path in titles),
+                        self.fetch_json_endpoint("stock/volatile"),
                         return_exceptions=True,
                     )
                 else:
                     async with timeout(t):
                         results = await asyncio.gather(
                             *(self.fetch_list(path) for path in titles),
+                            self.fetch_json_endpoint("stock/volatile"),
                             return_exceptions=True,
                         )
 
                 for idx, r in enumerate(results):
+                    label = titles[idx] if idx < len(titles) else "volatile_stock"
                     if isinstance(r, Exception):
-                        LOGGER.warning("Fetch %s failed: %s", titles[idx], r)
+                        LOGGER.warning("Fetch %s failed: %s", label, r)
 
-                self.final_data = dict(zip(titles, results))
+                base_results = results[: len(titles)]
+                volatile_stock = results[len(titles)]
+                if isinstance(volatile_stock, Exception):
+                    LOGGER.warning("Fetch volatile_stock failed: %s", volatile_stock)
+                    volatile_stock = {}
+
+                self.final_data = dict(zip(titles, base_results))
+                self.final_data["volatile_stock"] = volatile_stock
 
                 if self.disable_timeout:
                     self.final_data[
@@ -1358,6 +1554,7 @@ class ShoppingListWithGrocyApi:
                     self.final_data["shopping_lists_data"] = self.build_item_list(
                         self.final_data
                     )
+                    self._add_grocy_aggregate_entities(self.final_data)
                 else:
                     async with timeout(t):
                         self.final_data[
@@ -1366,6 +1563,7 @@ class ShoppingListWithGrocyApi:
                         self.final_data["shopping_lists_data"] = self.build_item_list(
                             self.final_data
                         )
+                        self._add_grocy_aggregate_entities(self.final_data)
 
         finally:
             await self.update_refreshing_status(False)
