@@ -52,6 +52,9 @@ class ShoppingListWithGrocyApi:
         concurrency = 8 if self.image_size <= 50 else 5 if self.image_size <= 100 else 3
         self._image_fetch_semaphore = asyncio.Semaphore(concurrency)
         self._image_refresh_lock = asyncio.Lock()
+        self._request_spacing_seconds = 0.2
+        self._request_lock = asyncio.Lock()
+        self._last_request_started = 0.0
 
     async def get_frontend_translation(self, key: str, **kwargs) -> str:
         """Get translation from frontend translation files."""
@@ -183,19 +186,20 @@ class ShoppingListWithGrocyApi:
             base_url = self.api_url.rstrip("/") if self.api_url else ""
             full_url = f"{base_url}/{url}"
 
-            if self.disable_timeout or req_timeout is None:
-                # No timeout wrapper
-                response = await self.web_session.request(
-                    method,
-                    full_url,
-                    headers=headers,
-                    json=payload if payload and not is_get else None,
-                    ssl=self.verify_ssl,
-                    **kwargs,
+            # Serialize outbound Grocy requests and add a small gap between them
+            # to avoid CPU spikes caused by bursty parallel request waves.
+            async with self._request_lock:
+                loop = asyncio.get_running_loop()
+                now = loop.time()
+                wait_time = self._request_spacing_seconds - (
+                    now - self._last_request_started
                 )
-            else:
-                # Only apply a timeout when explicitly requested
-                async with timeout(req_timeout):
+                if wait_time > 0:
+                    await asyncio.sleep(wait_time)
+                self._last_request_started = loop.time()
+
+                if self.disable_timeout or req_timeout is None:
+                    # No timeout wrapper
                     response = await self.web_session.request(
                         method,
                         full_url,
@@ -204,6 +208,17 @@ class ShoppingListWithGrocyApi:
                         ssl=self.verify_ssl,
                         **kwargs,
                     )
+                else:
+                    # Only apply a timeout when explicitly requested
+                    async with timeout(req_timeout):
+                        response = await self.web_session.request(
+                            method,
+                            full_url,
+                            headers=headers,
+                            json=payload if payload and not is_get else None,
+                            ssl=self.verify_ssl,
+                            **kwargs,
+                        )
 
             if response.status >= 400:
                 error_text = await response.text()

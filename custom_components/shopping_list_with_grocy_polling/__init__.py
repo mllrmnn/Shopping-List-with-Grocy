@@ -93,6 +93,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data[DOMAIN]["instances"]["api"] = api
     hass.data[DOMAIN]["todo_initialized"] = False
     hass.data[DOMAIN][entry.entry_id] = coordinator
+    entry.async_on_unload(entry.add_update_listener(async_update_entry))
 
     if "shopping_lists" not in hass.data[DOMAIN]:
         hass.data[DOMAIN]["shopping_lists"] = []
@@ -343,3 +344,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         async_unload_services(hass)
 
     return unload_ok
+
+
+async def async_update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the config entry after options/data changes."""
+    await hass.config_entries.async_reload(entry.entry_id)
