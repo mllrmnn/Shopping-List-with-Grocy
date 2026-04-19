@@ -465,18 +465,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for sensor in sensors:
         coordinator.entities.append(sensor)
 
-    for sensor in sensors:
-        if not hasattr(sensor, "entity_id") or sensor.entity_id is None:
-            sensor.entity_id = f"sensor.{sensor._attr_unique_id}"
-
     async_add_entities(initial_product_sensors + sensors)
-    for sensor in sensors:
-        current_entity_id = sensor.entity_id
-        expected_entity_id = f"sensor.{sensor._attr_unique_id}"
-
-        if current_entity_id != expected_entity_id:
-            sensor.entity_id = expected_entity_id
-            sensor.async_write_ha_state()
 
     pattern = re.compile(r"list_\d+_.*")
 
@@ -583,10 +572,16 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
         await asyncio.sleep(0.1)
 
-    async_dispatcher_connect(
-        hass, f"{DOMAIN}_add_or_update_sensor", async_add_or_update_dynamic_sensor
+    config_entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, f"{DOMAIN}_add_or_update_sensor", async_add_or_update_dynamic_sensor
+        )
     )
-    async_dispatcher_connect(hass, f"{DOMAIN}_remove_sensor", async_remove_grocy_sensor)
+    config_entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, f"{DOMAIN}_remove_sensor", async_remove_grocy_sensor
+        )
+    )
 
     # Only backfill dispatcher-created sensors when none were created initially.
     if (
@@ -642,8 +637,10 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
 
-        async_dispatcher_connect(
-            self.hass, "grocy_multiple_choices_force_update", self._force_update
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, "grocy_multiple_choices_force_update", self._force_update
+            )
         )
 
     @property
@@ -693,23 +690,3 @@ class GrocyShoppingListSensor(GrocyProductsDeviceEntity, SensorEntity):
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
-
-        entity_registry = async_get(self.hass)
-        registry_entry = entity_registry.async_get(self.entity_id)
-
-        if (
-            registry_entry
-            and registry_entry.entity_id != f"sensor.{self._attr_unique_id}"
-        ):
-            entity_registry.async_update_entity(
-                registry_entry.entity_id, new_entity_id=f"sensor.{self._attr_unique_id}"
-            )
-
-    async def async_will_remove_from_hass(self):
-        await super().async_will_remove_from_hass()
-
-        entity_registry = async_get(self.hass)
-        registry_entry = entity_registry.async_get(self.entity_id)
-
-        if registry_entry:
-            entity_registry.async_remove(registry_entry.entity_id)
