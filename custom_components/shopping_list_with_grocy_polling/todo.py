@@ -147,6 +147,7 @@ class ShoppingListWithGrocyTodoListEntity(
         try:
             await asyncio.gather(*tasks)
             LOGGER.debug("Successfully deleted %d items", len(uids))
+            await self.coordinator.request_update_after_action()
         except Exception as e:
             LOGGER.error("Failed to delete items: %s", e)
 
@@ -229,6 +230,7 @@ class ShoppingListWithGrocyTodoListEntity(
                             "notification_id": f"grocy_product_added_{int(time.time())}",
                         },
                     )
+                await self.coordinator.request_update_after_action()
 
             elif result["reason"] == "multiple_matches":
                 matches = result["matches"]
@@ -340,6 +342,7 @@ class ShoppingListWithGrocyTodoListEntity(
 
             try:
                 await self.api.update_grocy_shoppinglist_product(int(item.uid), checked)
+                await self.coordinator.request_update_after_action()
 
             except Exception as e:
                 LOGGER.error("Failed to update item %s in Grocy: %s", item.uid, e)

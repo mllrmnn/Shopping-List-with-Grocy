@@ -429,17 +429,20 @@ def async_setup_services(hass) -> None:
             shopping_list_id = data.get(SERVICE_ATTR_SHOPPING_LIST_ID, 1)
             quantity = data.get("quantity", 1)
             await coordinator.add_product(product_id, shopping_list_id, note, quantity)
+            await coordinator.request_update_after_action()
 
         if service == SERVICE_REMOVE:
             product_id = data.get(SERVICE_ATTR_PRODUCT_ID, "")
             shopping_list_id = data.get(SERVICE_ATTR_SHOPPING_LIST_ID, 1)
             await coordinator.remove_product(product_id, shopping_list_id)
+            await coordinator.request_update_after_action()
 
         if service == SERVICE_NOTE:
             product_id = data.get(SERVICE_ATTR_PRODUCT_ID, "")
             note = data.get(SERVICE_ATTR_NOTE, "")
             shopping_list_id = data.get(SERVICE_ATTR_SHOPPING_LIST_ID, 1)
             await coordinator.update_note(product_id, shopping_list_id, note)
+            await coordinator.request_update_after_action()
 
     hass.services.async_register(
         DOMAIN,

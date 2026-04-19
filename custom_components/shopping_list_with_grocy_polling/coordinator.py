@@ -1,5 +1,6 @@
 """Coordinator for the Shopping List with Grocy integration."""
 
+import asyncio
 import logging
 import time
 from datetime import timedelta
@@ -26,6 +27,7 @@ LOGGER = logging.getLogger(__name__)
 
 # TTL for ephemeral voice/choice entries before they are garbage-collected.
 _CHOICE_TTL_SECONDS = 2 * 60  # 2 minutes
+_ACTION_REFRESH_INTERVAL_SECONDS = 0.1
 
 
 def _purge_stale_keys(mapping: dict, threshold: float) -> bool:
@@ -67,6 +69,9 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         self.data = hass.data.setdefault(DOMAIN, {}).setdefault("products", {})
         self._parsed_data = {}
         self._image_refresh_unsub = None
+        self._action_refresh_task = None
+        self._action_refresh_pending = False
+        self._next_action_refresh_time = 0.0
 
         homeassistant_products = self.data.get("homeassistant_products", {})
         if not isinstance(homeassistant_products, dict):
@@ -92,6 +97,34 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
     async def request_update(self):
         await self.retrieve_data(True)
         return self.data
+
+    async def request_update_after_action(self) -> None:
+        """Coalesce bursts of post-action refresh requests."""
+        self._action_refresh_pending = True
+        if self._action_refresh_task and not self._action_refresh_task.done():
+            return
+        self._action_refresh_task = self.hass.async_create_task(
+            self._async_process_action_refresh_queue()
+        )
+
+    async def _async_process_action_refresh_queue(self) -> None:
+        """Run a leading refresh plus at most one trailing refresh per burst."""
+        try:
+            while True:
+                self._action_refresh_pending = False
+                wait_time = self._next_action_refresh_time - self.hass.loop.time()
+                if wait_time > 0:
+                    await asyncio.sleep(wait_time)
+
+                await self.request_update()
+                self._next_action_refresh_time = (
+                    self.hass.loop.time() + _ACTION_REFRESH_INTERVAL_SECONDS
+                )
+
+                if not self._action_refresh_pending:
+                    break
+        finally:
+            self._action_refresh_task = None
 
     async def cleanup_orphaned_choices(self) -> None:
         """Garbage-collect ephemeral voice/choice data older than TTL.
@@ -231,3 +264,6 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         if self._image_refresh_unsub is not None:
             self._image_refresh_unsub()
             self._image_refresh_unsub = None
+        if self._action_refresh_task and not self._action_refresh_task.done():
+            self._action_refresh_task.cancel()
+            self._action_refresh_task = None
