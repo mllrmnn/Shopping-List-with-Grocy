@@ -136,6 +136,19 @@ class GrocyDeviceEntity(CoordinatorEntity):
         )
 
 
+class GrocyProductsDeviceEntity(CoordinatorEntity):
+    """Coordinator entity that exposes a shared product device."""
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.entry.entry_id}_products")},
+            name="Grocy Products",
+            manufacturer="Grocy",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
+
 class GrocyAggregateSensorEntity(GrocyDeviceEntity, SensorEntity):
     """Grocy-style aggregate sensor built from the shared polling data."""
 
@@ -587,7 +600,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             await async_add_or_update_dynamic_sensor(product)
 
 
-class DynamicProductSensor(CoordinatorEntity, SensorEntity):
+class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
     def __init__(self, coordinator, product):
         super().__init__(coordinator)
         product_id = product.get("product_id", "unknown")
@@ -642,7 +655,7 @@ class DynamicProductSensor(CoordinatorEntity, SensorEntity):
         await self.async_update_ha_state(force_refresh=True)
 
 
-class GrocyShoppingListSensor(CoordinatorEntity, SensorEntity):
+class GrocyShoppingListSensor(GrocyProductsDeviceEntity, SensorEntity):
     def __init__(self, coordinator, sensor_type, name, config):
         super().__init__(coordinator)
         unique_id = f"{DOMAIN}_{sensor_type}"
