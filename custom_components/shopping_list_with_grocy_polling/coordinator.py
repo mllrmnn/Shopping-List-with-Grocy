@@ -14,10 +14,14 @@ from .const import (
     CONF_IMAGE_REFRESH_MODE,
     CONF_IMAGE_REFRESH_TIME,
     CONF_POLL_INTERVAL_SECONDS,
+    CONF_REFRESH_AFTER_ADD_PRODUCT,
+    CONF_REFRESH_AFTER_REMOVE_PRODUCT,
     DEFAULT_IMAGE_REFRESH_INTERVAL_HOURS,
     DEFAULT_IMAGE_REFRESH_MODE,
     DEFAULT_IMAGE_REFRESH_TIME,
     DEFAULT_POLL_INTERVAL_SECONDS,
+    DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+    DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
     DOMAIN,
     IMAGE_REFRESH_MODE_DAILY_TIME,
 )
@@ -125,6 +129,18 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
                     break
         finally:
             self._action_refresh_task = None
+
+    def should_refresh_after_add(self) -> bool:
+        """Return whether add actions should trigger a coalesced refresh."""
+        return self._config.get(
+            CONF_REFRESH_AFTER_ADD_PRODUCT, DEFAULT_REFRESH_AFTER_ADD_PRODUCT
+        )
+
+    def should_refresh_after_remove(self) -> bool:
+        """Return whether remove actions should trigger a coalesced refresh."""
+        return self._config.get(
+            CONF_REFRESH_AFTER_REMOVE_PRODUCT, DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT
+        )
 
     async def cleanup_orphaned_choices(self) -> None:
         """Garbage-collect ephemeral voice/choice data older than TTL.

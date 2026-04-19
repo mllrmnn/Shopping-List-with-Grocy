@@ -24,6 +24,8 @@ from .const import (
     CONF_ENABLE_BATTERIES,
     CONF_ENABLE_CHORES,
     CONF_ENABLE_MEAL_PLAN,
+    CONF_REFRESH_AFTER_ADD_PRODUCT,
+    CONF_REFRESH_AFTER_REMOVE_PRODUCT,
     DOMAIN,
     CONF_ENABLE_PRODUCT_SENSORS,
     CONF_ENABLE_TASKS,
@@ -47,6 +49,8 @@ from .const import (
     DEFAULT_ENABLE_CHORES,
     DEFAULT_ENABLE_MEAL_PLAN,
     DEFAULT_ENABLE_TASKS,
+    DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+    DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
     DEFAULT_SUGGEST_CREATE_ONLY_NO_MATCH,
     IMAGE_REFRESH_MODE_DAILY_TIME,
     IMAGE_REFRESH_MODE_INTERVAL,
@@ -143,6 +147,14 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                             CONF_ENABLE_BATTERIES: user_input.get(
                                 CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
                             ),
+                            CONF_REFRESH_AFTER_ADD_PRODUCT: user_input.get(
+                                CONF_REFRESH_AFTER_ADD_PRODUCT,
+                                DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+                            ),
+                            CONF_REFRESH_AFTER_REMOVE_PRODUCT: user_input.get(
+                                CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                                DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
+                            ),
                         }
                     )
                     return await self.async_step_advanced()
@@ -200,6 +212,14 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                     ),
                     CONF_ENABLE_BATTERIES: user_input.get(
                         CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                    ),
+                    CONF_REFRESH_AFTER_ADD_PRODUCT: user_input.get(
+                        CONF_REFRESH_AFTER_ADD_PRODUCT,
+                        DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+                    ),
+                    CONF_REFRESH_AFTER_REMOVE_PRODUCT: user_input.get(
+                        CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                        DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
                     ),
                     "unique_id": self.options.get("unique_id"),
                     CONF_ANALYSIS_SETTINGS: self.options.get(
@@ -262,6 +282,14 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 old_enable_batteries = self.options.get(
                     CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
                 )
+                old_refresh_after_add = self.options.get(
+                    CONF_REFRESH_AFTER_ADD_PRODUCT,
+                    DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+                )
+                old_refresh_after_remove = self.options.get(
+                    CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                    DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
+                )
 
                 settings_changed = (
                     old_api_url
@@ -310,6 +338,16 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                         or old_enable_batteries
                         != user_input.get(
                             CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                        )
+                        or old_refresh_after_add
+                        != user_input.get(
+                            CONF_REFRESH_AFTER_ADD_PRODUCT,
+                            DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+                        )
+                        or old_refresh_after_remove
+                        != user_input.get(
+                            CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                            DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
                         )
                     )
                 )
@@ -396,6 +434,20 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 CONF_ENABLE_BATTERIES,
                 default=self.options.get(
                     CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_REFRESH_AFTER_ADD_PRODUCT,
+                default=self.options.get(
+                    CONF_REFRESH_AFTER_ADD_PRODUCT,
+                    DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                default=self.options.get(
+                    CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                    DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
                 ),
             ): bool,
             vol.Optional("show_advanced", default=False): bool,
@@ -537,7 +589,7 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
 
 @config_entries.HANDLERS.register(DOMAIN)
 class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 9
+    VERSION = 10
     DOMAIN = DOMAIN
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
@@ -628,6 +680,14 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_ENABLE_BATTERIES,
                         default=DEFAULT_ENABLE_BATTERIES,
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_REFRESH_AFTER_ADD_PRODUCT,
+                        default=DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+                        default=DEFAULT_REFRESH_AFTER_REMOVE_PRODUCT,
                     ): cv.boolean,
                 }
             ),

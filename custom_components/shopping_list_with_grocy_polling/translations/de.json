@@ -17,7 +17,9 @@
           "enable_chores": "Chores-Sensoren aktivieren",
           "enable_tasks": "Tasks-Sensoren aktivieren",
           "enable_meal_plan": "Meal-Plan-Sensor aktivieren",
-          "enable_batteries": "Batterie-Sensoren aktivieren"
+          "enable_batteries": "Batterie-Sensoren aktivieren",
+          "refresh_after_add_product": "Nach add_product Vollrefresh ausfuehren",
+          "refresh_after_remove_product": "Nach remove_product Vollrefresh ausfuehren"
         }
       }
     },
@@ -51,7 +53,9 @@
           "enable_chores": "Chores-Sensoren aktivieren",
           "enable_tasks": "Tasks-Sensoren aktivieren",
           "enable_meal_plan": "Meal-Plan-Sensor aktivieren",
-          "enable_batteries": "Batterie-Sensoren aktivieren"
+          "enable_batteries": "Batterie-Sensoren aktivieren",
+          "refresh_after_add_product": "Nach add_product Vollrefresh ausfuehren",
+          "refresh_after_remove_product": "Nach remove_product Vollrefresh ausfuehren"
         }
       },
       "advanced": {
