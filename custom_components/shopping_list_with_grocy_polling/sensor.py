@@ -630,6 +630,12 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
 
+        entity_registry = async_get(self.hass)
+        registry_entry = entity_registry.async_get(self.entity_id)
+        expected_name = self._attr_name
+        if registry_entry and registry_entry.name != expected_name:
+            entity_registry.async_update_entity(self.entity_id, name=expected_name)
+
         if self.entity_id not in self.coordinator.entities:
             self.coordinator.entities.append(self)
 
@@ -690,3 +696,9 @@ class GrocyShoppingListSensor(GrocyProductsDeviceEntity, SensorEntity):
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
+
+        entity_registry = async_get(self.hass)
+        registry_entry = entity_registry.async_get(self.entity_id)
+        expected_name = self._attr_name
+        if registry_entry and registry_entry.name != expected_name:
+            entity_registry.async_update_entity(self.entity_id, name=expected_name)
