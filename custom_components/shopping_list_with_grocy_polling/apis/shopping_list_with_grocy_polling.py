@@ -27,7 +27,15 @@ from ..const import (
     ATTR_SHOPPING_LIST,
     ATTR_STOCK,
     ATTR_TASKS,
+    CONF_ENABLE_BATTERIES,
+    CONF_ENABLE_CHORES,
+    CONF_ENABLE_MEAL_PLAN,
+    CONF_ENABLE_TASKS,
     CONF_REQUEST_SPACING_MS,
+    DEFAULT_ENABLE_BATTERIES,
+    DEFAULT_ENABLE_CHORES,
+    DEFAULT_ENABLE_MEAL_PLAN,
+    DEFAULT_ENABLE_TASKS,
     DEFAULT_REQUEST_SPACING_MS,
     DOMAIN,
     ENTITY_VERSION,
@@ -1481,19 +1489,42 @@ class ShoppingListWithGrocyApi:
     def _add_grocy_aggregate_entities(self, data: dict) -> None:
         """Populate Grocy-style aggregate entity datasets from fetched data."""
         volatile_stock = data.get("volatile_stock", {}) or {}
-        data[ATTR_CHORES] = data.get("chores", []) or []
-        data[ATTR_TASKS] = data.get("tasks", []) or []
-        data[ATTR_BATTERIES] = data.get("batteries", []) or []
-        data[ATTR_MEAL_PLAN] = self._build_meal_plan_summary(data.get("meal_plan", []) or [])
+        chores_enabled = self.config.get(CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES)
+        tasks_enabled = self.config.get(CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS)
+        meal_plan_enabled = self.config.get(
+            CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN
+        )
+        batteries_enabled = self.config.get(
+            CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+        )
+
+        data[ATTR_CHORES] = (data.get("chores", []) or []) if chores_enabled else []
+        data[ATTR_TASKS] = (data.get("tasks", []) or []) if tasks_enabled else []
+        data[ATTR_BATTERIES] = (
+            (data.get("batteries", []) or []) if batteries_enabled else []
+        )
+        data[ATTR_MEAL_PLAN] = (
+            self._build_meal_plan_summary(data.get("meal_plan", []) or [])
+            if meal_plan_enabled
+            else []
+        )
         data[ATTR_SHOPPING_LIST] = self._build_shopping_list_products_summary(data)
         data[ATTR_STOCK] = self._build_stock_products_summary(data)
         data[ATTR_EXPIRING_PRODUCTS] = volatile_stock.get("due_products", []) or []
         data[ATTR_EXPIRED_PRODUCTS] = volatile_stock.get("expired_products", []) or []
         data[ATTR_OVERDUE_PRODUCTS] = volatile_stock.get("overdue_products", []) or []
         data[ATTR_MISSING_PRODUCTS] = volatile_stock.get("missing_products", []) or []
-        data[ATTR_OVERDUE_CHORES] = self._build_overdue_chores(data[ATTR_CHORES])
-        data[ATTR_OVERDUE_TASKS] = self._build_overdue_tasks(data[ATTR_TASKS])
-        data[ATTR_OVERDUE_BATTERIES] = self._build_overdue_batteries(data[ATTR_BATTERIES])
+        data[ATTR_OVERDUE_CHORES] = (
+            self._build_overdue_chores(data[ATTR_CHORES]) if chores_enabled else []
+        )
+        data[ATTR_OVERDUE_TASKS] = (
+            self._build_overdue_tasks(data[ATTR_TASKS]) if tasks_enabled else []
+        )
+        data[ATTR_OVERDUE_BATTERIES] = (
+            self._build_overdue_batteries(data[ATTR_BATTERIES])
+            if batteries_enabled
+            else []
+        )
 
     async def retrieve_data(self, force=False):
         """Retrieves data and updates if necessary."""
@@ -1511,11 +1542,15 @@ class ShoppingListWithGrocyApi:
                     "stock",
                     "product_groups",
                     "quantity_units",
-                    "chores",
-                    "tasks",
-                    "batteries",
-                    "meal_plan",
                 ]
+                if self.config.get(CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES):
+                    titles.append("chores")
+                if self.config.get(CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS):
+                    titles.append("tasks")
+                if self.config.get(CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES):
+                    titles.append("batteries")
+                if self.config.get(CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN):
+                    titles.append("meal_plan")
 
                 t = self.compute_timeout()
 

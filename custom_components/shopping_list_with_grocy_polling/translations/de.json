@@ -13,7 +13,11 @@
           "image_refresh_mode": "Wie Produktbilder aktualisiert werden sollen",
           "image_refresh_interval_hours": "Produktbilder alle X Stunden aktualisieren",
           "image_refresh_time": "Produktbilder taeglich um HH:MM aktualisieren",
-          "enable_product_sensors": "Individuelle Produktsensoren aktivieren"
+          "enable_product_sensors": "Individuelle Produktsensoren aktivieren",
+          "enable_chores": "Chores-Sensoren aktivieren",
+          "enable_tasks": "Tasks-Sensoren aktivieren",
+          "enable_meal_plan": "Meal-Plan-Sensor aktivieren",
+          "enable_batteries": "Batterie-Sensoren aktivieren"
         }
       }
     },
@@ -43,7 +47,11 @@
           "image_refresh_time": "Produktbilder taeglich um HH:MM aktualisieren",
           "show_advanced": "Erweiterte Algorithmus-Einstellungen anzeigen",
           "enable_bidirectional_sync": "Bidirektionale Synchronisierung verwenden",
-          "enable_product_sensors": "Individuelle Produktsensoren aktivieren"
+          "enable_product_sensors": "Individuelle Produktsensoren aktivieren",
+          "enable_chores": "Chores-Sensoren aktivieren",
+          "enable_tasks": "Tasks-Sensoren aktivieren",
+          "enable_meal_plan": "Meal-Plan-Sensor aktivieren",
+          "enable_batteries": "Batterie-Sensoren aktivieren"
         }
       },
       "advanced": {

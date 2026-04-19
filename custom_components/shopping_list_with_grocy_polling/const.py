@@ -21,6 +21,15 @@ DEFAULT_IMAGE_REFRESH_TIME = "03:00"
 
 # Configuration options
 CONF_ENABLE_PRODUCT_SENSORS = "enable_product_sensors"
+CONF_ENABLE_CHORES = "enable_chores"
+CONF_ENABLE_TASKS = "enable_tasks"
+CONF_ENABLE_MEAL_PLAN = "enable_meal_plan"
+CONF_ENABLE_BATTERIES = "enable_batteries"
+
+DEFAULT_ENABLE_CHORES = False
+DEFAULT_ENABLE_TASKS = False
+DEFAULT_ENABLE_MEAL_PLAN = False
+DEFAULT_ENABLE_BATTERIES = False
 
 STATE_INIT = "init"
 STATE_READY = "ready"

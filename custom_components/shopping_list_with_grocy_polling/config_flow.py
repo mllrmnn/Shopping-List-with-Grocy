@@ -21,8 +21,12 @@ from .analysis_const import (
     DEFAULT_SEASONAL_WEIGHT,
 )
 from .const import (
+    CONF_ENABLE_BATTERIES,
+    CONF_ENABLE_CHORES,
+    CONF_ENABLE_MEAL_PLAN,
     DOMAIN,
     CONF_ENABLE_PRODUCT_SENSORS,
+    CONF_ENABLE_TASKS,
     CONF_IMAGE_REFRESH_INTERVAL_HOURS,
     CONF_IMAGE_REFRESH_MODE,
     CONF_IMAGE_REFRESH_TIME,
@@ -39,6 +43,10 @@ from .const import (
     DEFAULT_REQUEST_SPACING_MS,
     DEFAULT_PREFER_GENERIC_PRODUCTS,
     DEFAULT_AUTO_SELECT_FIRST,
+    DEFAULT_ENABLE_BATTERIES,
+    DEFAULT_ENABLE_CHORES,
+    DEFAULT_ENABLE_MEAL_PLAN,
+    DEFAULT_ENABLE_TASKS,
     DEFAULT_SUGGEST_CREATE_ONLY_NO_MATCH,
     IMAGE_REFRESH_MODE_DAILY_TIME,
     IMAGE_REFRESH_MODE_INTERVAL,
@@ -142,6 +150,18 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                             CONF_ENABLE_PRODUCT_SENSORS: user_input.get(
                                 CONF_ENABLE_PRODUCT_SENSORS, True
                             ),
+                            CONF_ENABLE_CHORES: user_input.get(
+                                CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES
+                            ),
+                            CONF_ENABLE_TASKS: user_input.get(
+                                CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS
+                            ),
+                            CONF_ENABLE_MEAL_PLAN: user_input.get(
+                                CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN
+                            ),
+                            CONF_ENABLE_BATTERIES: user_input.get(
+                                CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                            ),
                         }
                     )
                     return await self.async_step_advanced()
@@ -187,6 +207,18 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                     ),
                     CONF_ENABLE_PRODUCT_SENSORS: user_input.get(
                         CONF_ENABLE_PRODUCT_SENSORS, True
+                    ),
+                    CONF_ENABLE_CHORES: user_input.get(
+                        CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES
+                    ),
+                    CONF_ENABLE_TASKS: user_input.get(
+                        CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS
+                    ),
+                    CONF_ENABLE_MEAL_PLAN: user_input.get(
+                        CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN
+                    ),
+                    CONF_ENABLE_BATTERIES: user_input.get(
+                        CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
                     ),
                     "unique_id": self.options.get("unique_id"),
                     CONF_ANALYSIS_SETTINGS: self.options.get(
@@ -237,6 +269,18 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 old_product_sensors = self.options.get(
                     CONF_ENABLE_PRODUCT_SENSORS, True
                 )
+                old_enable_chores = self.options.get(
+                    CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES
+                )
+                old_enable_tasks = self.options.get(
+                    CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS
+                )
+                old_enable_meal_plan = self.options.get(
+                    CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN
+                )
+                old_enable_batteries = self.options.get(
+                    CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                )
 
                 settings_changed = (
                     old_api_url
@@ -274,6 +318,18 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                         )
                         or old_product_sensors
                         != user_input.get(CONF_ENABLE_PRODUCT_SENSORS, True)
+                        or old_enable_chores
+                        != user_input.get(CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES)
+                        or old_enable_tasks
+                        != user_input.get(CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS)
+                        or old_enable_meal_plan
+                        != user_input.get(
+                            CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN
+                        )
+                        or old_enable_batteries
+                        != user_input.get(
+                            CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                        )
                     )
                 )
                 first_time_setup = not (old_api_url and old_api_key)
@@ -346,6 +402,28 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
             vol.Optional(
                 CONF_ENABLE_PRODUCT_SENSORS,
                 default=self.options.get(CONF_ENABLE_PRODUCT_SENSORS, True),
+            ): bool,
+            vol.Optional(
+                CONF_ENABLE_CHORES,
+                default=self.options.get(
+                    CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_ENABLE_TASKS,
+                default=self.options.get(CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS),
+            ): bool,
+            vol.Optional(
+                CONF_ENABLE_MEAL_PLAN,
+                default=self.options.get(
+                    CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_ENABLE_BATTERIES,
+                default=self.options.get(
+                    CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES
+                ),
             ): bool,
             vol.Optional("show_advanced", default=False): bool,
         }
@@ -494,7 +572,7 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
 
 @config_entries.HANDLERS.register(DOMAIN)
 class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 8
+    VERSION = 9
     DOMAIN = DOMAIN
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
@@ -572,6 +650,22 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_IMAGE_REFRESH_TIME,
                         default=DEFAULT_IMAGE_REFRESH_TIME,
                     ): cv.string,
+                    vol.Optional(
+                        CONF_ENABLE_CHORES,
+                        default=DEFAULT_ENABLE_CHORES,
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_ENABLE_TASKS,
+                        default=DEFAULT_ENABLE_TASKS,
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_ENABLE_MEAL_PLAN,
+                        default=DEFAULT_ENABLE_MEAL_PLAN,
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_ENABLE_BATTERIES,
+                        default=DEFAULT_ENABLE_BATTERIES,
+                    ): cv.boolean,
                 }
             ),
             errors=self._errors,

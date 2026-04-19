@@ -58,7 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     LOGGER.info("ðŸ”„ Initializing Shopping List with Grocy")
 
     migration_success = True
-    if entry.version < 7:
+    if entry.version < 9:
         LOGGER.debug("ðŸ”„ Running migration...")
         migration_success = await async_migrate_entry(hass, entry)
         if not migration_success:
@@ -308,6 +308,13 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
     if config_entry.version in {4, 5, 6}:
         hass.config_entries.async_update_entry(config_entry, version=7)
+        try:
+            await asyncio.wait_for(hass.async_block_till_done(), timeout=10)
+        except asyncio.TimeoutError:
+            LOGGER.warning("Migration took too long, continuing without blocking.")
+
+    if config_entry.version in {7, 8}:
+        hass.config_entries.async_update_entry(config_entry, version=9)
         try:
             await asyncio.wait_for(hass.async_block_till_done(), timeout=10)
         except asyncio.TimeoutError:

@@ -21,6 +21,12 @@ from .const import (
     ATTR_OVERDUE_CHORES,
     ATTR_OVERDUE_PRODUCTS,
     ATTR_OVERDUE_TASKS,
+    CONF_ENABLE_BATTERIES,
+    CONF_ENABLE_CHORES,
+    CONF_ENABLE_TASKS,
+    DEFAULT_ENABLE_BATTERIES,
+    DEFAULT_ENABLE_CHORES,
+    DEFAULT_ENABLE_TASKS,
     DOMAIN,
 )
 
@@ -101,6 +107,17 @@ AGGREGATE_BINARY_SENSORS: tuple[GrocyAggregateBinarySensorDescription, ...] = (
 )
 
 
+def _is_aggregate_binary_sensor_enabled(config: Mapping[str, Any], key: str) -> bool:
+    """Return whether an aggregate binary sensor group is enabled."""
+    if key == ATTR_OVERDUE_CHORES:
+        return config.get(CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES)
+    if key == ATTR_OVERDUE_TASKS:
+        return config.get(CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS)
+    if key == ATTR_OVERDUE_BATTERIES:
+        return config.get(CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES)
+    return True
+
+
 class GrocyDeviceEntity(CoordinatorEntity):
     """Coordinator entity exposing a shared Grocy device."""
 
@@ -140,6 +157,7 @@ class GrocyAggregateBinarySensorEntity(GrocyDeviceEntity, BinarySensorEntity):
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    config_data = config_entry.options if config_entry.options else config_entry.data
 
     update_binary_sensor = ShoppingListWithGrocyBinarySensor(
         coordinator,
@@ -154,6 +172,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     aggregate_binary_sensors = [
         GrocyAggregateBinarySensorEntity(coordinator, description, config_entry)
         for description in AGGREGATE_BINARY_SENSORS
+        if _is_aggregate_binary_sensor_enabled(config_data, description.key)
     ]
 
     async_add_entities([update_binary_sensor, *aggregate_binary_sensors])

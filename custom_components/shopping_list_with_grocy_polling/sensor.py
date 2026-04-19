@@ -28,7 +28,15 @@ from .const import (
     ATTR_SHOPPING_LIST,
     ATTR_STOCK,
     ATTR_TASKS,
+    CONF_ENABLE_BATTERIES,
+    CONF_ENABLE_CHORES,
     CONF_ENABLE_PRODUCT_SENSORS,
+    CONF_ENABLE_MEAL_PLAN,
+    CONF_ENABLE_TASKS,
+    DEFAULT_ENABLE_BATTERIES,
+    DEFAULT_ENABLE_CHORES,
+    DEFAULT_ENABLE_MEAL_PLAN,
+    DEFAULT_ENABLE_TASKS,
     DOMAIN,
     ENTITY_VERSION,
 )
@@ -114,6 +122,19 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         },
     ),
 )
+
+
+def _is_aggregate_sensor_enabled(config: Mapping[str, Any], key: str) -> bool:
+    """Return whether an aggregate sensor group is enabled."""
+    if key == ATTR_CHORES:
+        return config.get(CONF_ENABLE_CHORES, DEFAULT_ENABLE_CHORES)
+    if key == ATTR_TASKS:
+        return config.get(CONF_ENABLE_TASKS, DEFAULT_ENABLE_TASKS)
+    if key == ATTR_MEAL_PLAN:
+        return config.get(CONF_ENABLE_MEAL_PLAN, DEFAULT_ENABLE_MEAL_PLAN)
+    if key == ATTR_BATTERIES:
+        return config.get(CONF_ENABLE_BATTERIES, DEFAULT_ENABLE_BATTERIES)
+    return True
 
 
 class GrocyDeviceEntity(CoordinatorEntity):
@@ -436,6 +457,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         *[
             GrocyAggregateSensorEntity(coordinator, description, config_entry)
             for description in AGGREGATE_SENSORS
+            if _is_aggregate_sensor_enabled(config_data, description.key)
         ],
         GrocyShoppingListSensor(
             coordinator, "shopping_list", "Shopping List Items", config_data

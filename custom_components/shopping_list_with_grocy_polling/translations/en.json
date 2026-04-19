@@ -13,7 +13,11 @@
           "image_refresh_mode": "How product images should refresh",
           "image_refresh_interval_hours": "Refresh product images every X hours",
           "image_refresh_time": "Refresh product images daily at HH:MM",
-          "enable_product_sensors": "Enable individual product sensors"
+          "enable_product_sensors": "Enable individual product sensors",
+          "enable_chores": "Enable chore sensors",
+          "enable_tasks": "Enable task sensors",
+          "enable_meal_plan": "Enable meal plan sensor",
+          "enable_batteries": "Enable battery sensors"
         }
       }
     },
@@ -43,7 +47,11 @@
           "image_refresh_time": "Refresh product images daily at HH:MM",
           "show_advanced": "Show Advanced Algorithm Settings",
           "enable_bidirectional_sync": "Use bidirectional sync",
-          "enable_product_sensors": "Enable individual product sensors"
+          "enable_product_sensors": "Enable individual product sensors",
+          "enable_chores": "Enable chore sensors",
+          "enable_tasks": "Enable task sensors",
+          "enable_meal_plan": "Enable meal plan sensor",
+          "enable_batteries": "Enable battery sensors"
         }
       },
       "advanced": {
