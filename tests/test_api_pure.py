@@ -8,12 +8,12 @@ import pytest
 from unittest.mock import MagicMock
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def make_api(image_size=0, bidirectional=False):
     """Return an API instance with a minimal stub config, no real HTTP session."""
-    from custom_components.shopping_list_with_grocy.apis.shopping_list_with_grocy import (
+    from custom_components.shopping_list_with_grocy_polling.apis.shopping_list_with_grocy_polling import (
         ShoppingListWithGrocyApi,
     )
 
@@ -33,7 +33,7 @@ def make_api(image_size=0, bidirectional=False):
     return api
 
 
-# ── encode_base64 ─────────────────────────────────────────────────────────────
+# â”€â”€ encode_base64 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestEncodeBase64:
@@ -53,13 +53,13 @@ class TestEncodeBase64:
             api.encode_base64(123)
 
 
-# ── normalize_text_for_search ─────────────────────────────────────────────────
+# â”€â”€ normalize_text_for_search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNormalizeTextForSearch:
     def test_removes_accents(self):
         api = make_api()
-        assert api.normalize_text_for_search("Pâtes") == "pates"
+        assert api.normalize_text_for_search("PÃ¢tes") == "pates"
 
     def test_lowercases(self):
         api = make_api()
@@ -79,10 +79,10 @@ class TestNormalizeTextForSearch:
 
     def test_complex_accents(self):
         api = make_api()
-        assert api.normalize_text_for_search("Crème fraîche") == "creme fraiche"
+        assert api.normalize_text_for_search("CrÃ¨me fraÃ®che") == "creme fraiche"
 
 
-# ── calculate_similarity ──────────────────────────────────────────────────────
+# â”€â”€ calculate_similarity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCalculateSimilarity:
@@ -106,7 +106,7 @@ class TestCalculateSimilarity:
 
     def test_accent_insensitive(self):
         api = make_api()
-        score = api.calculate_similarity("pates", "Pâtes")
+        score = api.calculate_similarity("pates", "PÃ¢tes")
         assert score == 1.0
 
     def test_empty_strings_return_zero(self):
@@ -115,7 +115,7 @@ class TestCalculateSimilarity:
         assert api.calculate_similarity("lait", "") == 0.0
 
 
-# ── is_case_only_difference ───────────────────────────────────────────────────
+# â”€â”€ is_case_only_difference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestIsCaseOnlyDifference:
@@ -132,33 +132,33 @@ class TestIsCaseOnlyDifference:
         assert api.is_case_only_difference("lait", "beurre") is False
 
 
-# ── extract_product_name_from_ha_item ─────────────────────────────────────────
+# â”€â”€ extract_product_name_from_ha_item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExtractProductName:
     def test_name_with_quantity_pattern1(self):
-        """'Lait (x3)' → ('Lait', 3)"""
+        """'Lait (x3)' â†’ ('Lait', 3)"""
         api = make_api()
         name, qty = api.extract_product_name_from_ha_item("Lait (x3)")
         assert name == "Lait"
         assert qty == 3
 
     def test_name_with_quantity_pattern1_unicode_times(self):
-        """'Beurre (×2)' → ('Beurre', 2)"""
+        """'Beurre (Ã—2)' â†’ ('Beurre', 2)"""
         api = make_api()
-        name, qty = api.extract_product_name_from_ha_item("Beurre (×2)")
+        name, qty = api.extract_product_name_from_ha_item("Beurre (Ã—2)")
         assert name == "Beurre"
         assert qty == 2
 
     def test_name_with_leading_number_pattern2(self):
-        """'3 Lait' → ('Lait', 3)"""
+        """'3 Lait' â†’ ('Lait', 3)"""
         api = make_api()
         name, qty = api.extract_product_name_from_ha_item("3 Lait")
         assert name == "Lait"
         assert qty == 3
 
     def test_plain_name_no_quantity(self):
-        """'Lait' → ('Lait', 1)"""
+        """'Lait' â†’ ('Lait', 1)"""
         api = make_api()
         name, qty = api.extract_product_name_from_ha_item("Lait")
         assert name == "Lait"
@@ -172,12 +172,12 @@ class TestExtractProductName:
 
     def test_multiword_name(self):
         api = make_api()
-        name, qty = api.extract_product_name_from_ha_item("Crème fraîche (x1)")
-        assert name == "Crème fraîche"
+        name, qty = api.extract_product_name_from_ha_item("CrÃ¨me fraÃ®che (x1)")
+        assert name == "CrÃ¨me fraÃ®che"
         assert qty == 1
 
 
-# ── compute_timeout ───────────────────────────────────────────────────────────
+# â”€â”€ compute_timeout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeTimeout:
@@ -196,12 +196,12 @@ class TestComputeTimeout:
         assert api.compute_timeout() == expected
 
     def test_unknown_size_picks_nearest(self):
-        """image_size=75 → nearest key is 50 → timeout 60."""
+        """image_size=75 â†’ nearest key is 50 â†’ timeout 60."""
         api = make_api(image_size=75)
         assert api.compute_timeout() == 60
 
 
-# ── build_item_list — note-only items (issue #73 regression) ──────────────────
+# â”€â”€ build_item_list â€” note-only items (issue #73 regression) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBuildItemList:
@@ -257,7 +257,7 @@ class TestBuildItemList:
         # Should not raise
         result = api.build_item_list(data)
         assert isinstance(result, list)
-        # The note-only item has no product match → list is empty
+        # The note-only item has no product match â†’ list is empty
         assert result[0]["products"] == []
 
     def test_mixed_normal_and_note_only(self):
@@ -285,7 +285,7 @@ class TestBuildItemList:
         assert len(result[0]["products"]) == 1
 
 
-# ── find_similar_products ─────────────────────────────────────────────────────
+# â”€â”€ find_similar_products â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFindSimilarProducts:

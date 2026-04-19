@@ -1,0 +1,86 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "api_url": "Grocy - URL",
+          "verify_ssl": "SSL-Zertifikat verifizieren",
+          "api_key": "Grocy - API-Schluessel",
+          "image_download_size": "Groesse der heruntergeladenen Produktbilder (0 deaktiviert Bilder)",
+          "disable_timeout": "Netzwerk-Timeout deaktivieren",
+          "poll_interval_seconds": "Grocy-Daten alle X Sekunden aktualisieren",
+          "image_refresh_mode": "Wie Produktbilder aktualisiert werden sollen",
+          "image_refresh_interval_hours": "Produktbilder alle X Stunden aktualisieren",
+          "image_refresh_time": "Produktbilder taeglich um HH:MM aktualisieren",
+          "enable_product_sensors": "Individuelle Produktsensoren aktivieren"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Nur eine Instanz ist erlaubt."
+    },
+    "error": {
+      "invalid_api_url": "Die Grocy-URL ist ungueltig. Bitte eine gueltige URL verwenden.",
+      "invalid_image_refresh_time": "Bitte die taegliche Bildaktualisierungszeit im Format HH:MM eingeben."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Shopping List with Grocy Polling - Konfiguration",
+        "description": "Konfigurieren Sie die festen Abrufintervalle fuer Grocy.\n\nDiese Variante aktualisiert Grocy in festen Zeitabstaenden und Bilder in einem separaten Zeitplan.",
+        "data": {
+          "api_url": "Grocy - URL",
+          "verify_ssl": "SSL-Zertifikat verifizieren",
+          "api_key": "Grocy - API-Schluessel",
+          "disable_timeout": "Netzwerk-Timeout deaktivieren",
+          "image_download_size": "Groesse der heruntergeladenen Produktbilder (0 deaktiviert Bilder)",
+          "poll_interval_seconds": "Grocy-Daten alle X Sekunden aktualisieren",
+          "image_refresh_mode": "Wie Produktbilder aktualisiert werden sollen",
+          "image_refresh_interval_hours": "Produktbilder alle X Stunden aktualisieren",
+          "image_refresh_time": "Produktbilder taeglich um HH:MM aktualisieren",
+          "show_advanced": "Erweiterte Algorithmus-Einstellungen anzeigen",
+          "enable_bidirectional_sync": "Bidirektionale Synchronisierung verwenden",
+          "enable_product_sensors": "Individuelle Produktsensoren aktivieren"
+        }
+      },
+      "advanced": {
+        "title": "Erweiterte Einstellungen",
+        "description": "Erweiterte Algorithmus-Einstellungen und Auswahlkriterien.",
+        "data": {
+          "score_threshold": "Minimaler Vertrauenswert fuer Vorschlaege (0.0-1.0)",
+          "consumption_weight": "Gewichtung der Verbrauchsmuster (0.0-1.0)",
+          "frequency_weight": "Gewichtung der Kaufhistorie (0.0-1.0)",
+          "seasonal_weight": "Gewichtung saisonaler Muster (0.0-1.0)",
+          "prefer_generic_products": "Generische Produkte bevorzugen (ohne Elternprodukt)",
+          "auto_select_first": "Erstes Ergebnis automatisch waehlen",
+          "suggest_create_only_no_match": "Neue Produkte nur vorschlagen, wenn es keine Treffer gibt"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_url": "Die Grocy-URL ist ungueltig. Bitte eine gueltige URL verwenden.",
+      "weight_sum_error": "Die Algorithmus-Gewichtungen muessen genau 1.0 ergeben.",
+      "invalid_analysis_settings": "Ungueltige Algorithmus-Einstellungen.",
+      "invalid_selection_criteria": "Ungueltige Auswahlkriterien.",
+      "bidirectional_sync_required": "Auswahlkriterien erfordern aktivierte bidirektionale Synchronisierung.",
+      "invalid_image_refresh_time": "Bitte die taegliche Bildaktualisierungszeit im Format HH:MM eingeben."
+    },
+    "abort": {
+      "bidirectional_sync_disabled": "Auswahlkriterien sind nur mit aktivierter bidirektionaler Synchronisierung verfuegbar."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Neustart erforderlich - Shopping List with Grocy Polling",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Neustart erforderlich",
+            "description": "Die Integration {name} benoetigt einen Neustart, um die Konfiguration abzuschliessen."
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,16 +2,16 @@
 
 The engine's public methods (_calculate_consumption_score,
 _calculate_consumption_rate, should_suggest_purchase) are pure functions
-of their inputs — no HA required.
+of their inputs â€” no HA required.
 """
 
 from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock
 
-from custom_components.shopping_list_with_grocy.ml_engine import (
+from custom_components.shopping_list_with_grocy_polling.ml_engine import (
     PurchasePredictionEngine,
 )
-from custom_components.shopping_list_with_grocy.analysis_const import (
+from custom_components.shopping_list_with_grocy_polling.analysis_const import (
     DEFAULT_SCORE_THRESHOLD,
     DEFAULT_CONSUMPTION_WEIGHT,
     DEFAULT_FREQUENCY_WEIGHT,
@@ -19,7 +19,7 @@ from custom_components.shopping_list_with_grocy.analysis_const import (
 )
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
+# â”€â”€ Fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def make_engine(config=None):
@@ -40,7 +40,7 @@ def make_history(*state_days: tuple) -> list:
     ]
 
 
-# ── Default weights ───────────────────────────────────────────────────────────
+# â”€â”€ Default weights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDefaults:
@@ -64,7 +64,7 @@ class TestDefaults:
         assert engine.score_threshold == 0.5
 
 
-# ── _calculate_consumption_score ─────────────────────────────────────────────
+# â”€â”€ _calculate_consumption_score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestConsumptionScore:
@@ -78,21 +78,21 @@ class TestConsumptionScore:
         assert engine._calculate_consumption_score(history) == 0.0
 
     def test_increasing_state_is_a_purchase(self):
-        """State going 0→1 within 7 days → frequency ~1/week → score ~1.0."""
+        """State going 0â†’1 within 7 days â†’ frequency ~1/week â†’ score ~1.0."""
         engine = make_engine()
         history = make_history((0, 8), (1, 1))
         score = engine._calculate_consumption_score(history)
         assert score > 0.0
 
     def test_non_increasing_state_ignored(self):
-        """State staying flat → no purchase detected → score 0."""
+        """State staying flat â†’ no purchase detected â†’ score 0."""
         engine = make_engine()
         history = make_history((2, 10), (2, 5), (2, 1))
         score = engine._calculate_consumption_score(history)
         assert score == 0.0
 
     def test_score_capped_at_one(self):
-        """Very frequent purchases → score never exceeds 1.0."""
+        """Very frequent purchases â†’ score never exceeds 1.0."""
         engine = make_engine()
         # Purchase every day for 10 days
         history = make_history(*[(i, 10 - i) for i in range(10)])
@@ -106,7 +106,7 @@ class TestConsumptionScore:
         assert score >= 0.0
 
     def test_invalid_state_values_skipped(self):
-        """Non-numeric states don't crash — they're skipped."""
+        """Non-numeric states don't crash â€” they're skipped."""
         engine = make_engine()
         history = [
             {"state": "unavailable", "last_changed": utc(10)},
@@ -118,7 +118,7 @@ class TestConsumptionScore:
         assert isinstance(score, float)
 
 
-# ── _calculate_consumption_rate ───────────────────────────────────────────────
+# â”€â”€ _calculate_consumption_rate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestConsumptionRate:
@@ -131,14 +131,14 @@ class TestConsumptionRate:
         assert engine._calculate_consumption_rate(make_history((1, 5))) == 0.0
 
     def test_monthly_purchase_gives_reasonable_rate(self):
-        """30-day average interval → rate = 30/30 = 1.0."""
+        """30-day average interval â†’ rate = 30/30 = 1.0."""
         engine = make_engine()
         history = make_history((1, 60), (1, 30), (1, 0))
         rate = engine._calculate_consumption_rate(history)
         assert 0.9 <= rate <= 1.0
 
     def test_yearly_purchase_gives_low_rate(self):
-        """365-day interval → rate = 30/365 ≈ 0.08."""
+        """365-day interval â†’ rate = 30/365 â‰ˆ 0.08."""
         engine = make_engine()
         history = make_history((1, 365), (1, 0))
         rate = engine._calculate_consumption_rate(history)
@@ -158,7 +158,7 @@ class TestConsumptionRate:
         assert rate == 0.0
 
 
-# ── should_suggest_purchase ───────────────────────────────────────────────────
+# â”€â”€ should_suggest_purchase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestShouldSuggest:

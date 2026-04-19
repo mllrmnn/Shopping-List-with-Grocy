@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "api_url": "Grocy - URL",
+          "verify_ssl": "Verify SSL certificate",
+          "api_key": "Grocy - API Key",
+          "image_download_size": "Product image size (0 disables images)",
+          "disable_timeout": "Disable timeout",
+          "poll_interval_seconds": "Data refresh interval in seconds",
+          "image_refresh_mode": "Image refresh mode",
+          "image_refresh_interval_hours": "Image refresh interval in hours",
+          "image_refresh_time": "Daily image refresh time (HH:MM)",
+          "enable_product_sensors": "Enable individual product sensors"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only a single instance is allowed."
+    },
+    "error": {
+      "invalid_auth": "Invalid authentication",
+      "cannot_connect": "Failed to connect",
+      "unknown": "Unexpected error",
+      "weight_sum_error": "Analysis weights must sum to 1.0",
+      "invalid_image_refresh_time": "Time must use HH:MM"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Shopping List with Grocy Polling Options",
+        "description": "Configure polling and image refresh behavior.",
+        "data": {
+          "api_url": "Grocy - URL",
+          "verify_ssl": "Verify SSL certificate",
+          "api_key": "Grocy - API Key",
+          "disable_timeout": "Disable timeout",
+          "image_download_size": "Product image size (0 disables images)",
+          "poll_interval_seconds": "Data refresh interval in seconds",
+          "image_refresh_mode": "Image refresh mode",
+          "image_refresh_interval_hours": "Image refresh interval in hours",
+          "image_refresh_time": "Daily image refresh time (HH:MM)",
+          "show_advanced": "Show advanced algorithm settings",
+          "enable_bidirectional_sync": "Use bidirectional sync",
+          "enable_product_sensors": "Enable individual product sensors"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "description": "Advanced algorithm settings and selection criteria.",
+        "data": {
+          "score_threshold": "Minimum confidence score for suggestions (0.0-1.0)",
+          "consumption_weight": "How much to consider usage patterns (0.0-1.0)",
+          "frequency_weight": "How much to consider purchase history (0.0-1.0)",
+          "seasonal_weight": "How much to consider seasonal trends (0.0-1.0)",
+          "prefer_generic_products": "Prefer generic products (without parent)",
+          "auto_select_first": "Automatically select the first result",
+          "suggest_create_only_no_match": "Only suggest creating new products when no matches are found"
+        }
+      }
+    },
+    "error": {
+      "invalid_image_refresh_time": "Time must use HH:MM"
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Required - Shopping List with Grocy Polling",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Required",
+            "description": "The integration {name} requires a restart to complete setup."
+          }
+        }
+      }
+    }
+  }
+}
