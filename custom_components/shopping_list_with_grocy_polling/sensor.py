@@ -609,6 +609,7 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
 
         self._product_id = str(product_id)
         self._attr_name = product.get("name", "Unknown Product")
+        self._attr_has_entity_name = False
         self.entity_id = entity_id
         self._attr_unique_id = unique_id
 
@@ -661,6 +662,7 @@ class GrocyShoppingListSensor(GrocyProductsDeviceEntity, SensorEntity):
         unique_id = f"{DOMAIN}_{sensor_type}"
         entity_id = f"sensor.{unique_id}"
         self._attr_name = name
+        self._attr_has_entity_name = False
         self.entity_id = entity_id
         self._attr_unique_id = unique_id
         self.sensor_type = sensor_type
