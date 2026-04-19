@@ -13,7 +13,13 @@ from homeassistant.components.todo import TodoItemStatus
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from ..const import DOMAIN, ENTITY_VERSION, OTHER_FIELDS
+from ..const import (
+    CONF_REQUEST_SPACING_MS,
+    DEFAULT_REQUEST_SPACING_MS,
+    DOMAIN,
+    ENTITY_VERSION,
+    OTHER_FIELDS,
+)
 from ..frontend_translations import async_load_frontend_translations, get_voice_response
 from ..utils import is_update_paused
 
@@ -52,7 +58,18 @@ class ShoppingListWithGrocyApi:
         concurrency = 8 if self.image_size <= 50 else 5 if self.image_size <= 100 else 3
         self._image_fetch_semaphore = asyncio.Semaphore(concurrency)
         self._image_refresh_lock = asyncio.Lock()
-        self._request_spacing_seconds = 0.2
+        self._request_spacing_seconds = (
+            max(
+                0,
+                int(
+                    config.get(
+                        CONF_REQUEST_SPACING_MS,
+                        DEFAULT_REQUEST_SPACING_MS,
+                    )
+                ),
+            )
+            / 1000
+        )
         self._request_lock = asyncio.Lock()
         self._last_request_started = 0.0
 

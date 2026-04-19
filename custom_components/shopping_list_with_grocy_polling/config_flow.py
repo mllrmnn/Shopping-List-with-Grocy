@@ -27,6 +27,7 @@ from .const import (
     CONF_IMAGE_REFRESH_MODE,
     CONF_IMAGE_REFRESH_TIME,
     CONF_POLL_INTERVAL_SECONDS,
+    CONF_REQUEST_SPACING_MS,
     CONF_SELECTION_CRITERIA,
     CONF_PREFER_GENERIC_PRODUCTS,
     CONF_AUTO_SELECT_FIRST,
@@ -35,6 +36,7 @@ from .const import (
     DEFAULT_IMAGE_REFRESH_MODE,
     DEFAULT_IMAGE_REFRESH_TIME,
     DEFAULT_POLL_INTERVAL_SECONDS,
+    DEFAULT_REQUEST_SPACING_MS,
     DEFAULT_PREFER_GENERIC_PRODUCTS,
     DEFAULT_AUTO_SELECT_FIRST,
     DEFAULT_SUGGEST_CREATE_ONLY_NO_MATCH,
@@ -118,6 +120,10 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                                 CONF_POLL_INTERVAL_SECONDS,
                                 DEFAULT_POLL_INTERVAL_SECONDS,
                             ),
+                            CONF_REQUEST_SPACING_MS: user_input.get(
+                                CONF_REQUEST_SPACING_MS,
+                                DEFAULT_REQUEST_SPACING_MS,
+                            ),
                             CONF_IMAGE_REFRESH_MODE: user_input.get(
                                 CONF_IMAGE_REFRESH_MODE,
                                 DEFAULT_IMAGE_REFRESH_MODE,
@@ -159,6 +165,10 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                     CONF_POLL_INTERVAL_SECONDS: user_input.get(
                         CONF_POLL_INTERVAL_SECONDS,
                         DEFAULT_POLL_INTERVAL_SECONDS,
+                    ),
+                    CONF_REQUEST_SPACING_MS: user_input.get(
+                        CONF_REQUEST_SPACING_MS,
+                        DEFAULT_REQUEST_SPACING_MS,
                     ),
                     CONF_IMAGE_REFRESH_MODE: user_input.get(
                         CONF_IMAGE_REFRESH_MODE,
@@ -211,6 +221,9 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                 old_poll_interval = self.options.get(
                     CONF_POLL_INTERVAL_SECONDS, DEFAULT_POLL_INTERVAL_SECONDS
                 )
+                old_request_spacing_ms = self.options.get(
+                    CONF_REQUEST_SPACING_MS, DEFAULT_REQUEST_SPACING_MS
+                )
                 old_image_refresh_mode = self.options.get(
                     CONF_IMAGE_REFRESH_MODE, DEFAULT_IMAGE_REFRESH_MODE
                 )
@@ -240,6 +253,11 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                         != user_input.get(
                             CONF_POLL_INTERVAL_SECONDS,
                             DEFAULT_POLL_INTERVAL_SECONDS,
+                        )
+                        or old_request_spacing_ms
+                        != user_input.get(
+                            CONF_REQUEST_SPACING_MS,
+                            DEFAULT_REQUEST_SPACING_MS,
                         )
                         or old_image_refresh_mode
                         != user_input.get(
@@ -291,6 +309,12 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                     CONF_POLL_INTERVAL_SECONDS, DEFAULT_POLL_INTERVAL_SECONDS
                 ),
             ): vol.All(vol.Coerce(int), vol.Range(min=5, max=86400)),
+            vol.Optional(
+                CONF_REQUEST_SPACING_MS,
+                default=self.options.get(
+                    CONF_REQUEST_SPACING_MS, DEFAULT_REQUEST_SPACING_MS
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=60000)),
             vol.Optional(
                 CONF_IMAGE_REFRESH_MODE,
                 default=self.options.get(
@@ -527,6 +551,10 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_POLL_INTERVAL_SECONDS,
                         default=DEFAULT_POLL_INTERVAL_SECONDS,
                     ): vol.All(cv.positive_int, vol.Range(min=5, max=86400)),
+                    vol.Optional(
+                        CONF_REQUEST_SPACING_MS,
+                        default=DEFAULT_REQUEST_SPACING_MS,
+                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=60000)),
                     vol.Optional(
                         CONF_IMAGE_REFRESH_MODE,
                         default=DEFAULT_IMAGE_REFRESH_MODE,
