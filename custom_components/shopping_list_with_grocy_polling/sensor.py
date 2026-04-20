@@ -517,7 +517,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
         if existing_sensor:
             existing_state = str(existing_sensor.state)
-            existing_attributes = existing_sensor.attributes.copy()
+            original_attributes = existing_sensor.attributes.copy()
+            existing_attributes = original_attributes.copy()
+            new_name = product.get("name")
+            name_changed = False
 
             attributes_to_remove = product.get("attributes_to_remove", [])
             for key in attributes_to_remove:
@@ -548,28 +551,59 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     "entity_picture"
                 ]
 
+            if new_name:
+                entity_registry = async_get(hass)
+                registry_entry = entity_registry.async_get(entity_id)
+                if registry_entry and registry_entry.name != new_name:
+                    entity_registry.async_update_entity(entity_id, name=new_name)
+                    name_changed = True
+
+                if updated_attributes.get("friendly_name") != new_name:
+                    updated_attributes["friendly_name"] = new_name
+                    name_changed = True
+
+                for entity in coordinator.entities:
+                    if getattr(entity, "entity_id", None) != entity_id:
+                        continue
+                    if getattr(entity, "_attr_name", None) != new_name:
+                        entity._attr_name = new_name
+                        name_changed = True
+                    break
+
             new_state = str(product.get("qty_in_shopping_lists", existing_state))
 
             state_changed = new_state != existing_state
-            attributes_changed = updated_attributes != existing_attributes
+            attributes_changed = updated_attributes != original_attributes
 
             force_picture_update = False
             if "entity_picture" in product.get("attributes", {}):
                 try:
-                    current_pic = existing_attributes.get("entity_picture")
+                    current_pic = original_attributes.get("entity_picture")
                     incoming_pic = product["attributes"].get("entity_picture")
                     if current_pic != incoming_pic:
                         force_picture_update = True
                 except Exception:
                     force_picture_update = True
 
-            if state_changed or attributes_changed or force_picture_update:
+            if (
+                state_changed
+                or attributes_changed
+                or force_picture_update
+                or name_changed
+            ):
                 hass.states.async_set(
                     entity_id, new_state, attributes=updated_attributes
                 )
 
                 if product_id in coordinator._parsed_data:
-                    coordinator._parsed_data[product_id] = copy.deepcopy(product)
+                    updated_product = copy.deepcopy(product)
+                    if not updated_product.get("name") and coordinator._parsed_data[
+                        product_id
+                    ].get("name"):
+                        updated_product["name"] = coordinator._parsed_data[product_id][
+                            "name"
+                        ]
+                    coordinator._parsed_data[product_id] = updated_product
                     coordinator._parsed_data[product_id]["qty_in_shopping_lists"] = (
                         new_state
                     )

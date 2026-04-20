@@ -726,7 +726,9 @@ class ShoppingListWithGrocyApi:
         base_attributes["list_count"] = len(shopping_entries)
 
         return {
-            "name": cached_product.get("name", product_meta.get("name", "Unknown Product")),
+            "name": cached_product.get(
+                "name", product_meta.get("name", "Unknown Product")
+            ),
             "product_id": int(product_id),
             "qty_in_shopping_lists": total_qty,
             "attributes": base_attributes,

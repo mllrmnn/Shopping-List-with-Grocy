@@ -201,6 +201,10 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
                         homeassistant_products = {}
                     for product_id, product_data in homeassistant_products.items():
                         if product_id in self._parsed_data:
+                            if product_data.get("name"):
+                                self._parsed_data[product_id]["name"] = product_data[
+                                    "name"
+                                ]
                             self._parsed_data[product_id]["qty_in_shopping_lists"] = (
                                 product_data["qty_in_shopping_lists"]
                             )
