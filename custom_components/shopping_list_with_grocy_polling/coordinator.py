@@ -81,6 +81,7 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
         self._parsed_data = {}
         self._image_refresh_unsub = None
         self._initial_image_refresh_unsub = None
+        self._image_refresh_tasks: set[asyncio.Task] = set()
         self._action_refresh_task = None
         self._pending_action_product_ids: set[int] = set()
         self._next_action_refresh_time = 0.0
@@ -296,11 +297,17 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
     async def _handle_initial_image_refresh(self, _now) -> None:
         """Kick off the first image refresh after startup without blocking setup."""
         self._initial_image_refresh_unsub = None
-        self.hass.async_create_task(self.async_refresh_images(initial=True))
+        self._track_background_task(self.async_refresh_images(initial=True))
 
     async def _handle_scheduled_image_refresh(self, _now) -> None:
         """Run image refreshes on the configured schedule."""
-        self.hass.async_create_task(self.async_refresh_images())
+        self._track_background_task(self.async_refresh_images())
+
+    def _track_background_task(self, coro) -> None:
+        """Track background work so unload can cancel it cleanly."""
+        task = self.hass.async_create_task(coro)
+        self._image_refresh_tasks.add(task)
+        task.add_done_callback(self._image_refresh_tasks.discard)
 
     async def async_shutdown(self) -> None:
         """Cancel scheduled callbacks when the entry unloads."""
@@ -312,7 +319,19 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
             self._initial_image_refresh_unsub = None
         if self._action_refresh_task and not self._action_refresh_task.done():
             self._action_refresh_task.cancel()
-            self._action_refresh_task = None
+            try:
+                await self._action_refresh_task
+            except asyncio.CancelledError:
+                pass
+            finally:
+                self._action_refresh_task = None
+        if self._image_refresh_tasks:
+            tasks = list(self._image_refresh_tasks)
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            self._image_refresh_tasks.clear()
 
     def apply_runtime_config(self, entry) -> None:
         """Apply updated config entry data without a full reload when possible."""

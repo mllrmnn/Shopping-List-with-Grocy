@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, asyncio
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
+from .analysis_const import CONF_ANALYSIS_SETTINGS
 from .apis.shopping_list_with_grocy_polling import ShoppingListWithGrocyApi
 from .const import (
     DEFAULT_IMAGE_DOWNLOAD_SIZE,
@@ -19,6 +20,7 @@ from .const import (
     CONF_REFRESH_AFTER_ADD_PRODUCT,
     CONF_REFRESH_AFTER_REMOVE_PRODUCT,
     CONF_REQUEST_SPACING_MS,
+    CONF_SELECTION_CRITERIA,
     DOMAIN,
 )
 from .coordinator import ShoppingListWithGrocyCoordinator
@@ -340,13 +342,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload Shopping List with Grocy integration."""
     LOGGER.info("Unloading Shopping List with Grocy...")
 
+    domain_data = hass.data.get(DOMAIN, {})
+
     try:
-        coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        coordinator = domain_data.get(entry.entry_id)
         if coordinator:
             await coordinator.async_shutdown()
+
+        retry_handles = domain_data.get("todo_retry_handles", {})
+        retry_handle = retry_handles.pop(entry.entry_id, None)
+        if retry_handle:
+            retry_handle()
+
         await async_unload_frontend(hass)
     except Exception as e:
-        LOGGER.error("Failed to unload frontend: %s", str(e))
+        LOGGER.error("Failed during integration pre-unload cleanup: %s", str(e))
 
     unload_ok = all(
         await asyncio.gather(
@@ -358,8 +368,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     if unload_ok:
-        hass.data.pop(DOMAIN, None)
         async_unload_services(hass)
+        domain_data.pop(entry.entry_id, None)
+        instances = domain_data.get("instances")
+        if isinstance(instances, dict):
+            instances.clear()
+        entities = domain_data.get("entities")
+        if isinstance(entities, dict):
+            entities.clear()
+        domain_data.pop("todo_retry_handles", None)
+        hass.data.pop(DOMAIN, None)
 
     return unload_ok
 
@@ -399,8 +417,17 @@ async def async_update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         return
 
     live_runtime_keys = {
+        "api_key",
+        "api_url",
+        "disable_notifications",
+        "disable_timeout",
+        "enable_bidirectional_sync",
+        "unique_id",
+        "verify_ssl",
+        CONF_ANALYSIS_SETTINGS,
         CONF_POLL_INTERVAL_SECONDS,
         CONF_REQUEST_SPACING_MS,
+        CONF_SELECTION_CRITERIA,
     }
     live_image_keys = {
         "image_download_size",

@@ -2,6 +2,15 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.6] - 2026-04-20
+
+### Fixed
+
+- Tracked and cancelled background image refresh tasks during reload/delete
+- Cancelled pending To-do retry handles during unload
+- Avoided hard reloads when options saving only adds benign default/runtime fields
+- Made integration unload cleanup more defensive before deleting the integration entry
+
 ## [1.0.5] - 2026-04-20
 
 ### Changed
@@ -89,6 +98,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.6]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.6
 [1.0.5]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.5
 [1.0.4]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.4
 [1.0.3]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.3
