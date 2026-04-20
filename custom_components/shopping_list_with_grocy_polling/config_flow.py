@@ -7,6 +7,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .analysis_const import (
     ANALYSIS_SCHEMA,
@@ -63,6 +64,35 @@ _LOGGER = logging.getLogger(__name__)
 IMAGE_DOWNLOAD_SIZE_OPTIONS = [0, 10, 25, 50, 100, 150, 200]
 
 
+def _image_size_label(value: int) -> str:
+    """Return a user-facing label for image size options."""
+    return "Disabled" if int(value) == 0 else f"{int(value)}%"
+
+
+def _image_download_size_selector(default: int):
+    """Return the list-style selector for product image sizes."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                {"value": str(value), "label": _image_size_label(value)}
+                for value in IMAGE_DOWNLOAD_SIZE_OPTIONS
+            ],
+            mode=selector.SelectSelectorMode.LIST,
+        )
+    )
+
+
+def _normalize_image_download_size(user_input: dict[str, Any] | None) -> None:
+    """Normalize selector string values back to the integer config value."""
+    if user_input is None or "image_download_size" not in user_input:
+        return
+
+    try:
+        user_input["image_download_size"] = int(user_input["image_download_size"])
+    except (TypeError, ValueError):
+        user_input["image_download_size"] = DEFAULT_IMAGE_DOWNLOAD_SIZE
+
+
 class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # type: ignore
     """Handle option configuration via Integrations page."""
 
@@ -93,6 +123,7 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
         self._errors = {}
 
         if user_input is not None:
+            _normalize_image_download_size(user_input)
             if user_input.get("show_advanced", False):
                 if not is_valid_url(user_input.get("api_url", "")):
                     self._errors["base"] = "invalid_api_url"
@@ -378,10 +409,12 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
             ): bool,
             vol.Optional(
                 "image_download_size",
-                default=self.options.get(
+                default=str(self.options.get(
                     "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
-                ),
-            ): vol.All(vol.Coerce(int), vol.In(IMAGE_DOWNLOAD_SIZE_OPTIONS)),
+                )),
+            ): _image_download_size_selector(
+                self.options.get("image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE)
+            ),
             vol.Optional(
                 CONF_POLL_INTERVAL_SECONDS,
                 default=self.options.get(
@@ -623,6 +656,7 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
+        _normalize_image_download_size(user_input)
 
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
@@ -650,10 +684,8 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("api_key"): cv.string,
                     vol.Optional("disable_timeout", default=False): cv.boolean,
                     vol.Optional(
-                        "image_download_size", default=DEFAULT_IMAGE_DOWNLOAD_SIZE
-                    ): vol.All(
-                        vol.Coerce(int), vol.In(IMAGE_DOWNLOAD_SIZE_OPTIONS)
-                    ),
+                        "image_download_size", default=str(DEFAULT_IMAGE_DOWNLOAD_SIZE)
+                    ): _image_download_size_selector(DEFAULT_IMAGE_DOWNLOAD_SIZE),
                     vol.Optional(
                         CONF_POLL_INTERVAL_SECONDS,
                         default=DEFAULT_POLL_INTERVAL_SECONDS,
