@@ -6,7 +6,7 @@ All notable changes to this fork will be documented in this file.
 
 ### Added
 
-- Added Grocy-style aggregate sensors for locations and shopping-list locations
+- Added API-backed Grocy-style aggregate sensors for locations and shopping-list locations
 
 ### Changed
 
