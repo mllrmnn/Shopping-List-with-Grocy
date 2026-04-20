@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 import logging
 import re
 import unicodedata
@@ -353,6 +354,76 @@ class ShoppingListWithGrocyApi:
             self.hass, f"{DOMAIN}_remove_sensor", product.split("_")[-1]
         )
 
+    @staticmethod
+    def _compact_number(value: float) -> int | float:
+        """Return integers without a trailing decimal for friendlier attributes."""
+        rounded = round(float(value), 2)
+        return int(rounded) if rounded.is_integer() else rounded
+
+    def _build_stock_location_attributes(
+        self,
+        product: dict,
+        stock_entries: list[dict],
+        locations: dict,
+    ) -> tuple[list[dict], str, str]:
+        """Aggregate stock entries by storage location for a product entity."""
+        grouped_locations: dict[str, dict] = {}
+
+        for stock_entry in stock_entries:
+            amount = float(stock_entry.get("amount", 0) or 0)
+            is_open = int(stock_entry.get("open", 0) or 0)
+            location_id = stock_entry.get("location_id", product.get("location_id"))
+            location_key = str(location_id) if location_id is not None else "unknown"
+            location_name = (
+                locations.get(location_id)
+                or locations.get(location_key)
+                or "Unknown location"
+            )
+
+            location = grouped_locations.setdefault(
+                location_key,
+                {
+                    "location_id": location_id,
+                    "location_name": location_name,
+                    "amount": 0.0,
+                    "opened_amount": 0.0,
+                    "unopened_amount": 0.0,
+                },
+            )
+            location["amount"] += amount
+            if is_open:
+                location["opened_amount"] += amount
+            else:
+                location["unopened_amount"] += amount
+
+        stock_locations = []
+        for location in grouped_locations.values():
+            stock_locations.append(
+                {
+                    "location_id": location["location_id"],
+                    "location_name": location["location_name"],
+                    "amount": self._compact_number(location["amount"]),
+                    "opened_amount": self._compact_number(location["opened_amount"]),
+                    "unopened_amount": self._compact_number(
+                        location["unopened_amount"]
+                    ),
+                }
+            )
+
+        stock_locations.sort(key=lambda item: (item.get("location_name") or "").lower())
+        summary_parts = [
+            f"{item['location_name']}: {item['amount']}" for item in stock_locations
+        ]
+        summary_json = {
+            item["location_name"]: item["amount"] for item in stock_locations
+        }
+
+        return (
+            stock_locations,
+            ", ".join(summary_parts),
+            json.dumps(summary_json, ensure_ascii=False, separators=(",", ":")),
+        )
+
     async def parse_products(self, data):
         self.current_time = datetime.now(timezone.utc)
 
@@ -365,6 +436,11 @@ class ShoppingListWithGrocyApi:
         quantity_units = {q["id"]: q["name"] for q in data["quantity_units"]}
         locations = {loc["id"]: loc["name"] for loc in data["locations"]}
         product_groups = {g["id"]: g["name"] for g in data["product_groups"]}
+        stock_by_product: dict[str, list[dict]] = {}
+        for stock_entry in data["stock"]:
+            stock_by_product.setdefault(str(stock_entry.get("product_id")), []).append(
+                stock_entry
+            )
 
         current_product_ids = {str(product["id"]) for product in data["products"]}
 
@@ -428,18 +504,26 @@ class ShoppingListWithGrocyApi:
                     }
                     qty_in_shopping_lists += int(in_shop_list)
 
+            product_stock_entries = stock_by_product.get(str(product_id), [])
             stock_qty = sum(
-                float(stock["amount"])
-                for stock in data["stock"]
-                if str(stock["product_id"]) == str(product_id)
+                float(stock.get("amount", 0) or 0) for stock in product_stock_entries
             )
             opened_qty = sum(
-                float(stock["amount"]) * int(stock["open"])
-                for stock in data["stock"]
-                if str(stock["product_id"]) == str(product_id)
+                float(stock.get("amount", 0) or 0)
+                * int(stock.get("open", 0) or 0)
+                for stock in product_stock_entries
             )
 
             unopened_qty = max(0, stock_qty - opened_qty)
+            (
+                stock_locations,
+                stock_locations_summary,
+                stock_locations_summary_json,
+            ) = self._build_stock_location_attributes(
+                product,
+                product_stock_entries,
+                locations,
+            )
 
             prod_dict = {
                 "product_id": product_id,
@@ -455,6 +539,9 @@ class ShoppingListWithGrocyApi:
                 "group": group,
                 "userfields": userfields,
                 "list_count": len(shopping_lists),
+                "stock_locations": stock_locations,
+                "stock_locations_summary": stock_locations_summary,
+                "stock_locations_summary_json": stock_locations_summary_json,
             }
 
             for shop_list, details in shopping_lists.items():

@@ -2,6 +2,12 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.1.2] - 2026-04-20
+
+### Added
+
+- Added per-product stock location attributes to product entities, including a readable summary and JSON summary string
+
 ## [1.1.1] - 2026-04-20
 
 ### Changed
@@ -145,6 +151,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.1.2]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.1.2
 [1.1.1]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.1.1
 [1.1.0]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.1.0
 [1.0.11]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.11
