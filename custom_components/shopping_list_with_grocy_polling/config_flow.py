@@ -66,7 +66,7 @@ IMAGE_DOWNLOAD_SIZE_OPTIONS = [0, 10, 25, 50, 100, 150, 200]
 
 def _image_size_label(value: int) -> str:
     """Return a user-facing label for image size options."""
-    return "Disabled" if int(value) == 0 else f"{int(value)}%"
+    return "Disabled" if int(value) == 0 else f"{int(value)} px"
 
 
 def _image_download_size_selector(default: int):

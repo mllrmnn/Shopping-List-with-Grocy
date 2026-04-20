@@ -18,12 +18,14 @@ from ..const import (
     ATTR_CHORES,
     ATTR_EXPIRED_PRODUCTS,
     ATTR_EXPIRING_PRODUCTS,
+    ATTR_LOCATIONS,
     ATTR_MEAL_PLAN,
     ATTR_MISSING_PRODUCTS,
     ATTR_OVERDUE_BATTERIES,
     ATTR_OVERDUE_CHORES,
     ATTR_OVERDUE_PRODUCTS,
     ATTR_OVERDUE_TASKS,
+    ATTR_SHOPPING_LOCATIONS,
     ATTR_SHOPPING_LIST,
     ATTR_STOCK,
     ATTR_TASKS,
@@ -744,6 +746,9 @@ class ShoppingListWithGrocyApi:
         self.final_data["shopping_lists_data"] = self.build_item_list(self.final_data)
         self.final_data[ATTR_SHOPPING_LIST] = self._build_shopping_list_products_summary(
             self.final_data
+        )
+        self.final_data[ATTR_SHOPPING_LOCATIONS] = (
+            self._build_shopping_locations_summary(self.final_data)
         )
 
         homeassistant_products = self.final_data.setdefault("homeassistant_products", {})
@@ -1555,6 +1560,47 @@ class ShoppingListWithGrocyApi:
 
         return result
 
+    def _build_shopping_locations_summary(self, data: dict) -> list[dict]:
+        """Build location details for products currently on shopping lists."""
+        products_by_id = {
+            str(product["id"]): product for product in data.get("products", [])
+        }
+        locations_by_id = {
+            str(item["id"]): item for item in data.get("locations", [])
+        }
+        grouped_locations: dict[str, dict] = {}
+
+        for item in data.get("shopping_list", []):
+            product = products_by_id.get(str(item.get("product_id")))
+            if not product:
+                continue
+
+            location_id = product.get("location_id")
+            location_key = str(location_id) if location_id is not None else ""
+            location = locations_by_id.get(location_key, {})
+            group = grouped_locations.setdefault(
+                location_key or "unknown",
+                {
+                    "id": location_id,
+                    "name": location.get("name") or "Unknown location",
+                    "products": [],
+                    "count": 0,
+                },
+            )
+            group["products"].append(
+                {
+                    **item,
+                    "product_name": product.get("name"),
+                    "product": product,
+                }
+            )
+            group["count"] = len(group["products"])
+
+        return sorted(
+            grouped_locations.values(),
+            key=lambda item: (item.get("name") or "").lower(),
+        )
+
     def _build_overdue_chores(self, chores: list[dict]) -> list[dict]:
         now = datetime.now(timezone.utc)
         return [
@@ -1687,6 +1733,8 @@ class ShoppingListWithGrocyApi:
         )
         data[ATTR_SHOPPING_LIST] = self._build_shopping_list_products_summary(data)
         data[ATTR_STOCK] = self._build_stock_products_summary(data)
+        data[ATTR_LOCATIONS] = data.get("locations", []) or []
+        data[ATTR_SHOPPING_LOCATIONS] = self._build_shopping_locations_summary(data)
         data[ATTR_EXPIRING_PRODUCTS] = self._enrich_volatile_product_entries(
             volatile_stock.get("due_products", []) or [],
             data,

@@ -25,7 +25,9 @@ from homeassistant.helpers.typing import StateType
 from .const import (
     ATTR_BATTERIES,
     ATTR_CHORES,
+    ATTR_LOCATIONS,
     ATTR_MEAL_PLAN,
+    ATTR_SHOPPING_LOCATIONS,
     ATTR_SHOPPING_LIST,
     ATTR_STOCK,
     ATTR_TASKS,
@@ -57,6 +59,8 @@ def _aggregate_unrecorded_attributes(key: str) -> frozenset[str]:
     """Return large attributes that should stay out of the recorder DB."""
     if key in {ATTR_SHOPPING_LIST, ATTR_STOCK}:
         return frozenset({"products"})
+    if key in {ATTR_LOCATIONS, ATTR_SHOPPING_LOCATIONS}:
+        return frozenset({key})
     if key == ATTR_MEAL_PLAN:
         return frozenset({"meals"})
     return frozenset({key})
@@ -103,6 +107,24 @@ AGGREGATE_SENSORS: tuple[GrocyAggregateSensorDescription, ...] = (
         icon="mdi:fridge-outline",
         attributes_fn=lambda data: {
             "products": data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_LOCATIONS,
+        name="Locations",
+        icon="mdi:map-marker-outline",
+        attributes_fn=lambda data: {
+            ATTR_LOCATIONS: data,
+            "count": len(data),
+        },
+    ),
+    GrocyAggregateSensorDescription(
+        key=ATTR_SHOPPING_LOCATIONS,
+        name="Shopping locations",
+        icon="mdi:map-marker-path",
+        attributes_fn=lambda data: {
+            ATTR_SHOPPING_LOCATIONS: data,
             "count": len(data),
         },
     ),
