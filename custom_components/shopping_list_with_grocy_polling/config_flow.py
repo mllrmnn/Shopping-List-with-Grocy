@@ -47,6 +47,7 @@ from .const import (
     DEFAULT_AUTO_SELECT_FIRST,
     DEFAULT_ENABLE_BATTERIES,
     DEFAULT_ENABLE_CHORES,
+    DEFAULT_IMAGE_DOWNLOAD_SIZE,
     DEFAULT_ENABLE_MEAL_PLAN,
     DEFAULT_ENABLE_TASKS,
     DEFAULT_REFRESH_AFTER_ADD_PRODUCT,
@@ -58,6 +59,16 @@ from .const import (
 from .schema import SELECTION_CRITERIA_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
+
+IMAGE_DOWNLOAD_SIZE_OPTIONS = {
+    0: "Disabled",
+    10: "10%",
+    25: "25%",
+    50: "50%",
+    100: "100%",
+    150: "150%",
+    200: "200%",
+}
 
 
 class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # type: ignore
@@ -107,7 +118,7 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                             "verify_ssl": user_input.get("verify_ssl", True),
                             "disable_timeout": user_input.get("disable_timeout", False),
                             "image_download_size": user_input.get(
-                                "image_download_size", 100
+                                "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
                             ),
                             CONF_POLL_INTERVAL_SECONDS: user_input.get(
                                 CONF_POLL_INTERVAL_SECONDS,
@@ -174,7 +185,9 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                     "api_key": user_input["api_key"],
                     "verify_ssl": user_input.get("verify_ssl", True),
                     "disable_timeout": user_input.get("disable_timeout", False),
-                    "image_download_size": user_input.get("image_download_size", 100),
+                    "image_download_size": user_input.get(
+                        "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
+                    ),
                     CONF_POLL_INTERVAL_SECONDS: user_input.get(
                         CONF_POLL_INTERVAL_SECONDS,
                         DEFAULT_POLL_INTERVAL_SECONDS,
@@ -250,7 +263,9 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                     "enable_bidirectional_sync", False
                 )
                 old_disable_timeout = self.options.get("disable_timeout", False)
-                old_image_size = self.options.get("image_download_size", 100)
+                old_image_size = self.options.get(
+                    "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
+                )
                 old_poll_interval = self.options.get(
                     CONF_POLL_INTERVAL_SECONDS, DEFAULT_POLL_INTERVAL_SECONDS
                 )
@@ -301,7 +316,10 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
                         != user_input.get("enable_bidirectional_sync", False)
                         or old_disable_timeout
                         != user_input.get("disable_timeout", False)
-                        or old_image_size != user_input.get("image_download_size", 100)
+                        or old_image_size
+                        != user_input.get(
+                            "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
+                        )
                         or old_poll_interval
                         != user_input.get(
                             CONF_POLL_INTERVAL_SECONDS,
@@ -368,8 +386,10 @@ class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # typ
             ): bool,
             vol.Optional(
                 "image_download_size",
-                default=self.options.get("image_download_size", 100),
-            ): vol.All(vol.Coerce(int), vol.In([0, 50, 100, 150, 200])),
+                default=self.options.get(
+                    "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
+                ),
+            ): vol.All(vol.Coerce(int), vol.In(IMAGE_DOWNLOAD_SIZE_OPTIONS)),
             vol.Optional(
                 CONF_POLL_INTERVAL_SECONDS,
                 default=self.options.get(
@@ -637,8 +657,10 @@ class ShoppingListWithGrocyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("verify_ssl", default=True): cv.boolean,
                     vol.Required("api_key"): cv.string,
                     vol.Optional("disable_timeout", default=False): cv.boolean,
-                    vol.Optional("image_download_size", default=100): vol.All(
-                        cv.positive_int, vol.In([0, 50, 100, 150, 200])
+                    vol.Optional(
+                        "image_download_size", default=DEFAULT_IMAGE_DOWNLOAD_SIZE
+                    ): vol.All(
+                        vol.Coerce(int), vol.In(IMAGE_DOWNLOAD_SIZE_OPTIONS)
                     ),
                     vol.Optional(
                         CONF_POLL_INTERVAL_SECONDS,

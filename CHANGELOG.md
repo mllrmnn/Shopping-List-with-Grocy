@@ -2,6 +2,15 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.5] - 2026-04-20
+
+### Changed
+
+- Changed defaults to poll data every 600 seconds with 75 ms request spacing
+- Changed the default image refresh schedule to daily at 03:47
+- Changed the default image download size to 25% and added 10% and 25% image options
+- Enabled post-`add_product` and post-`remove_product` product/shopping-list refreshes by default
+
 ## [1.0.4] - 2026-04-20
 
 ### Fixed
@@ -80,6 +89,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.5]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.5
 [1.0.4]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.4
 [1.0.3]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.3
 [1.0.2]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.2

@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_registry import async_get as async_get_entity_
 
 from .apis.shopping_list_with_grocy_polling import ShoppingListWithGrocyApi
 from .const import (
+    DEFAULT_IMAGE_DOWNLOAD_SIZE,
     CONF_IMAGE_REFRESH_INTERVAL_HOURS,
     CONF_IMAGE_REFRESH_MODE,
     CONF_IMAGE_REFRESH_TIME,
@@ -300,14 +301,14 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         v2_options: ConfigEntry = {**config_entry.options}
         if v2_options:
             if v2_options.get("adding_images"):
-                v2_options["image_download_size"] = 100
+                v2_options["image_download_size"] = DEFAULT_IMAGE_DOWNLOAD_SIZE
             else:
                 v2_options["image_download_size"] = 0
             v2_options.pop("adding_images")
 
         v2_data: ConfigEntry = {**config_entry.data}
         if v2_data["adding_images"]:
-            v2_data["image_download_size"] = 100
+            v2_data["image_download_size"] = DEFAULT_IMAGE_DOWNLOAD_SIZE
         else:
             v2_data["image_download_size"] = 0
         v2_data.pop("adding_images")

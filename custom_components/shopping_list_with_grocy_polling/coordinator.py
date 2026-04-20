@@ -19,6 +19,7 @@ from .const import (
     CONF_IMAGE_REFRESH_TIME,
     CONF_POLL_INTERVAL_SECONDS,
     CONF_REQUEST_SPACING_MS,
+    DEFAULT_IMAGE_DOWNLOAD_SIZE,
     DEFAULT_REQUEST_SPACING_MS,
     CONF_REFRESH_AFTER_ADD_PRODUCT,
     CONF_REFRESH_AFTER_REMOVE_PRODUCT,
@@ -324,7 +325,9 @@ class ShoppingListWithGrocyCoordinator(DataUpdateCoordinator):
                 DEFAULT_POLL_INTERVAL_SECONDS,
             )
         )
-        self.api.image_size = self._config.get("image_download_size", 0)
+        self.api.image_size = self._config.get(
+            "image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE
+        )
         self.api.disable_timeout = self._config.get("disable_timeout", False)
         self.api.api_url = (
             self._config.get("api_url", "").strip()

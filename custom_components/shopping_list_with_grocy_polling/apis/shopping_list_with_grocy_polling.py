@@ -32,6 +32,7 @@ from ..const import (
     CONF_ENABLE_MEAL_PLAN,
     CONF_ENABLE_TASKS,
     CONF_REQUEST_SPACING_MS,
+    DEFAULT_IMAGE_DOWNLOAD_SIZE,
     DEFAULT_ENABLE_BATTERIES,
     DEFAULT_ENABLE_CHORES,
     DEFAULT_ENABLE_MEAL_PLAN,
@@ -65,7 +66,7 @@ class ShoppingListWithGrocyApi:
         if not self.api_key:
             raise ValueError("Grocy API key is required")
 
-        self.image_size = config.get("image_download_size", 0)
+        self.image_size = config.get("image_download_size", DEFAULT_IMAGE_DOWNLOAD_SIZE)
         self.ha_products = []
         self.final_data = {}
         self.pagination_limit = 40
@@ -1419,7 +1420,7 @@ class ShoppingListWithGrocyApi:
         )
 
     def compute_timeout(self) -> int:
-        table = {0: 60, 50: 60, 100: 90, 150: 120, 200: 180}
+        table = {0: 60, 10: 60, 25: 60, 50: 60, 100: 90, 150: 120, 200: 180}
         if self.image_size in table:
             return table[self.image_size]
         nearest = min(table.keys(), key=lambda k: abs(k - int(self.image_size or 0)))
