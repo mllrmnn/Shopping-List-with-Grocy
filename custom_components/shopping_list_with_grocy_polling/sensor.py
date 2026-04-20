@@ -623,7 +623,7 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
         self._attr_has_entity_name = False
         self.entity_id = entity_id
         self._attr_unique_id = unique_id
-        self._unrecorded_attributes = frozenset({"entity_picture", "product_image"})
+        self._unrecorded_attributes = frozenset({"entity_picture"})
 
         if coordinator.entry and coordinator.entry.entry_id:
             self._attr_config_entry_id = coordinator.entry.entry_id
@@ -642,7 +642,9 @@ class DynamicProductSensor(GrocyProductsDeviceEntity, SensorEntity):
     def extra_state_attributes(self):
         product = self.coordinator._parsed_data.get(self._product_id)
         if product:
-            return product.get("attributes", {})
+            attributes = dict(product.get("attributes", {}))
+            attributes.pop("product_image", None)
+            return attributes
         return {}
 
     async def async_added_to_hass(self):

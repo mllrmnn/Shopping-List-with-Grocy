@@ -536,7 +536,7 @@ class ShoppingListWithGrocyApi:
                         if isinstance(hap, dict):
                             key = str(product_id)
                             if key in hap and "attributes" in hap[key]:
-                                hap[key]["attributes"]["product_image"] = picture
+                                hap[key]["attributes"].pop("product_image", None)
                                 hap[key]["attributes"]["entity_picture"] = data_uri
                 except Exception:
                     LOGGER.debug(
@@ -551,9 +551,9 @@ class ShoppingListWithGrocyApi:
                     {
                         "product_id": product_id,
                         "attributes": {
-                            "product_image": picture,
                             "entity_picture": data_uri,
                         },
+                        "attributes_to_remove": ["product_image"],
                     },
                 )
 

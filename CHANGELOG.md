@@ -2,6 +2,13 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.7] - 2026-04-20
+
+### Changed
+
+- Removed the redundant `product_image` Base64 attribute from product entities while keeping `entity_picture` for UI cards
+- Existing `product_image` attributes are removed on the next product image update
+
 ## [1.0.6] - 2026-04-20
 
 ### Fixed
@@ -98,6 +105,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.7]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.7
 [1.0.6]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.6
 [1.0.5]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.5
 [1.0.4]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.4
