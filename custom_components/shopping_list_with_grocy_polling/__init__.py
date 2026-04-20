@@ -11,8 +11,13 @@ from homeassistant.helpers.entity_registry import async_get as async_get_entity_
 
 from .apis.shopping_list_with_grocy_polling import ShoppingListWithGrocyApi
 from .const import (
+    CONF_IMAGE_REFRESH_INTERVAL_HOURS,
+    CONF_IMAGE_REFRESH_MODE,
+    CONF_IMAGE_REFRESH_TIME,
+    CONF_POLL_INTERVAL_SECONDS,
     CONF_REFRESH_AFTER_ADD_PRODUCT,
     CONF_REFRESH_AFTER_REMOVE_PRODUCT,
+    CONF_REQUEST_SPACING_MS,
     DOMAIN,
 )
 from .coordinator import ShoppingListWithGrocyCoordinator
@@ -379,10 +384,36 @@ async def async_update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         if old_config.get(key) != new_config.get(key)
     }
 
+    if not changed_keys:
+        LOGGER.debug("Options saved without changes for %s; skipping reload", entry.entry_id)
+        return
+
     if changed_keys and changed_keys.issubset(live_update_keys):
         coordinator.apply_runtime_config(entry)
         LOGGER.debug(
             "Applied config changes without reload for %s: %s",
+            entry.entry_id,
+            ", ".join(sorted(changed_keys)),
+        )
+        return
+
+    live_runtime_keys = {
+        CONF_POLL_INTERVAL_SECONDS,
+        CONF_REQUEST_SPACING_MS,
+    }
+    live_image_keys = {
+        "image_download_size",
+        CONF_IMAGE_REFRESH_MODE,
+        CONF_IMAGE_REFRESH_INTERVAL_HOURS,
+        CONF_IMAGE_REFRESH_TIME,
+    }
+
+    if changed_keys.issubset(live_update_keys | live_runtime_keys | live_image_keys):
+        coordinator.apply_runtime_config(entry)
+        if changed_keys & live_image_keys:
+            await coordinator.async_setup_image_schedule()
+        LOGGER.debug(
+            "Applied runtime config changes without reload for %s: %s",
             entry.entry_id,
             ", ".join(sorted(changed_keys)),
         )

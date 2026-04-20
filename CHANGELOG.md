@@ -2,6 +2,13 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.4] - 2026-04-20
+
+### Fixed
+
+- Saving the options form without changes no longer reloads the integration
+- Lightweight runtime options such as poll interval, request spacing and image refresh schedule are applied live instead of forcing a full unload/setup cycle
+
 ## [1.0.3] - 2026-04-19
 
 ### Fixed
@@ -73,6 +80,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.4]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.4
 [1.0.3]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.3
 [1.0.2]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.2
 [1.0.1]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.1
