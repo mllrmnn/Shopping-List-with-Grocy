@@ -60,15 +60,7 @@ from .schema import SELECTION_CRITERIA_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 
-IMAGE_DOWNLOAD_SIZE_OPTIONS = {
-    0: "Disabled",
-    10: "10%",
-    25: "25%",
-    50: "50%",
-    100: "100%",
-    150: "150%",
-    200: "200%",
-}
+IMAGE_DOWNLOAD_SIZE_OPTIONS = [0, 10, 25, 50, 100, 150, 200]
 
 
 class ShoppingListWithGrocyOptionsConfigFlow(config_entries.OptionsFlow):  # type: ignore

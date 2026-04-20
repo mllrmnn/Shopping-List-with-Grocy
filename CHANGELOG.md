@@ -2,6 +2,12 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.0.8] - 2026-04-20
+
+### Fixed
+
+- Restored the product image size option to the previous list-style selector while keeping the new 10% and 25% values
+
 ## [1.0.7] - 2026-04-20
 
 ### Changed
@@ -105,6 +111,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.0.8]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.8
 [1.0.7]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.7
 [1.0.6]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.6
 [1.0.5]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.5
