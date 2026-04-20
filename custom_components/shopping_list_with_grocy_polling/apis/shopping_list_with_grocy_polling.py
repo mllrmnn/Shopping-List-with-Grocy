@@ -304,7 +304,12 @@ class ShoppingListWithGrocyApi:
 
     async def fetch_image(self, image_name: str):
         """Fetch an image from the API."""
-        url = f"api/files/productpictures/{image_name}?force_serve_as=picture&best_fit_width={self.image_size}"
+        params = {
+            "force_serve_as": "picture",
+            "best_fit_width": self.image_size,
+            "best_fit_height": self.image_size,
+        }
+        url = f"api/files/productpictures/{image_name}?{urlencode(params)}"
         return await self.request(
             "get",
             url,
