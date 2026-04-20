@@ -2,6 +2,12 @@
 
 All notable changes to this fork will be documented in this file.
 
+## [1.1.0] - 2026-04-20
+
+### Changed
+
+- Promoted the latest 1.0.11 feature set to the 1.1.0 release line
+
 ## [1.0.11] - 2026-04-20
 
 ### Added
@@ -133,6 +139,7 @@ Initial release of the `shopping_list_with_grocy_polling` fork.
 - Product entity name normalization for already existing registry entries
 - Missing product image handling so stale image references do not spam 404 errors
 
+[1.1.0]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.1.0
 [1.0.11]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.11
 [1.0.10]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.10
 [1.0.9]: https://github.com/mllrmnn/Shopping-List-with-Grocy/releases/tag/v1.0.9
